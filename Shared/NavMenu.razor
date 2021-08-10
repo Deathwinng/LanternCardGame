@@ -1,0 +1,130 @@
+﻿@using Enums
+
+<div class="top-row pl-4 navbar navbar-dark">
+    <a class="navbar-brand" href="">Lantern Card Game <span class="badge badge-info">ALPHA</span></a>
+    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <ul class="nav flex-column">
+        @if (ShowNavMenu)
+        {
+            <AuthorizeView>
+                <Authorized>
+                    @if (this.Player != null)
+                    {
+                        if (this.Player.PlayerStatus == PlayerStatus.InRoom)
+                        {
+                            <li class="nav-item px-3">
+                                <NavLink class="nav-link" href="">
+                                    <span class="oi oi-x" aria-hidden="true"></span> Leave Room
+                                </NavLink>
+                            </li>
+                        }
+                        else if (this.Player.PlayerStatus == PlayerStatus.InGame)
+                        {
+                            <li class="nav-item px-3">
+                                <NavLink class="nav-link" href="">
+                                    <span class="oi oi-x" aria-hidden="true"></span> Leave Game
+                                </NavLink>
+                            </li>
+                        }
+                        else if (this.Player.PlayerStatus == PlayerStatus.Free)
+                        {
+                            <li class="nav-item px-3">
+                                <NavLink class="nav-link" href="newRoom">
+                                    <span class="oi oi-plus" aria-hidden="true"></span> Create New Room
+                                </NavLink>
+                            </li>
+                            <li class="nav-item px-3">
+                                <NavLink class="nav-link" href="rooms" Match="NavLinkMatch.All">
+                                    <span class="oi oi-list" aria-hidden="true"></span> Browse Rooms
+                                </NavLink>
+                            </li>
+
+                            <li class="nav-item px-3 mt-4">
+                                <NavLink class="nav-link" href="Identity/Account/Manage">
+                                    <span class="oi oi-person" aria-hidden="true"></span> @context.User.Identity.Name
+                                </NavLink>
+                            </li>
+                            <li class="nav-item px-3">
+                                <form method="post" action="Identity/Account/LogOut" style="cursor: pointer;">
+                                    <NavLink class="nav-link" onclick="this.parentNode.submit()">
+                                        <span class="oi oi-account-logout" aria-hidden="true"></span> Log Out
+                                    </NavLink>
+                                </form>
+                            </li>
+                        }
+                    }
+                </Authorized>
+                <NotAuthorized>
+                    <li class="nav-item px-3">
+                        <NavLink class="nav-link" href="Identity/Account/LogIn">
+                            <span class="oi oi-account-login" aria-hidden="true"></span> Log In
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-3">
+                        <NavLink class="nav-link" href="Identity/Account/Register">
+                            <span class="oi oi-account-login" aria-hidden="true"></span> Register
+                        </NavLink>
+                    </li>
+                </NotAuthorized>
+            </AuthorizeView>
+        }
+        else
+        {
+            <li class="nav-item px-3">
+                <form method="post" action="Identity/Account/LogOut" style="cursor: pointer;">
+                    <NavLink class="nav-link" onclick="this.parentNode.submit()">
+                        <span class="oi oi-account-logout" aria-hidden="true"></span> Log Out
+                    </NavLink>
+                </form>
+            </li>
+        }
+    </ul>
+
+    @if (ShowNavMenu && OnlinePlayers.Count > 0)
+    {
+        <div class="online-players ml-3">
+            <p>Online players</p>
+            <ul class="online-players-list list-unstyled">
+                @foreach (var player in OnlinePlayers)
+                {
+                    var status = player.PlayerStatus switch
+                    {
+                        PlayerStatus.InGame => "Player is in a game.",
+                        PlayerStatus.InRoom => "Player is in a room.",
+                        //PlayerStatus.Inactive => "Player may be disconnected.",
+                        _ => "Player is free."
+                    };
+                    <li title=@status>
+                        <span class="player-status @(player.PlayerStatus.ToString().ToLower())"></span>
+                        @player.Username
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public bool ShowNavMenu { get; set; }
+
+    [Parameter]
+    public ICollection<PlayerModel> OnlinePlayers { get; set; }
+
+    [Parameter]
+    public PlayerModel Player { get; set; }
+
+    private bool collapseNavMenu = true;
+
+    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

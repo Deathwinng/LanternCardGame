@@ -1,0 +1,46 @@
+﻿@page "/"
+
+@using Shared.Enums
+
+@inject OnlinePlayersService playerService
+@inject CurrentUserService userService
+
+<AuthorizeView>
+    <Authorized>
+        @if (this.player?.PlayerStatus != PlayerStatus.Duplicate)
+        {
+            <h1>Welcome!</h1>
+            <h3><a href="/newRoom">Create new room</a> or <a href="/rooms">browse rooms</a> to start playing.</h3>
+        }
+        else
+        {
+            <form method="post" action="Identity/Account/LogOut">
+                <button type="submit" class="nav-link btn btn-danger mt-5">Log out</button>
+            </form>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <h1>Plese <a href="/Identity/Account/LogIn">log in</a> or <a href="/Identity/Account/Register">register</a> to play the game!</h1>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private PlayerModel player;
+
+    protected override void OnInitialized()
+    {
+        this.player = this.playerService.GetPlayerByInstanceId(this.userService.InstanceId);
+        base.OnInitialized();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            this.player = this.playerService.GetPlayerByInstanceId(this.userService.InstanceId);
+            this.StateHasChanged();
+        }
+
+        base.OnAfterRender(firstRender);
+    }
+}

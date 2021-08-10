@@ -1,0 +1,95 @@
+﻿@page "/rooms"
+
+@using Shared.Enums
+@implements IDisposable
+
+@attribute [Authorize]
+@inject GameRoomsService roomService
+@inject CurrentUserService userService
+@inject OnlinePlayersService playerService
+@inject NotifyService notifyService
+@inject NavigationManager navManager
+
+<div style="display: flex; justify-content: space-between;">
+    <h1>Rooms</h1>
+    @{ var nav = "/newRoom"; }
+    <button class="btn btn-outline-success mb-2" @onclick="() => this.navManager.NavigateTo(nav)"><span class="oi oi-plus"></span> Create</button>
+</div>
+
+@if (rooms.Count == 0)
+{
+    <div>No rooms</div>
+}
+else
+{
+    <table class="table">
+        <thead class="thead-light">
+            <tr>
+                <th>Name</th>
+                <th>Players</th>
+                <th>Max Points</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var room in rooms)
+            {
+                <tr class="d-md-table-row">
+                    <td>@(string.IsNullOrWhiteSpace(room.Name) ? "(No name)" : room.Name)</td>
+                    <td>@room.PlayerCount / @room.MaxPlayers </td>
+                    <td>@room.MaxPoints </td>
+                    <td><button class="btn btn-primary" disabled="@(room.PlayerCount == room.MaxPlayers)" @onclick="() => JoinRoom(room.Id)">Join</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    //[CascadingParameter]
+    //protected HubConnection hubConnection { get; set; }
+    ICollection<GameRoomModel> rooms;
+    private string[] subscriptionInfo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshRoomsAsync();
+        await base.OnInitializedAsync();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        if (this.playerService.GetPlayerByInstanceId(this.userService.InstanceId).PlayerStatus == PlayerStatus.Duplicate)
+        {
+            this.navManager.NavigateTo("/");
+        }
+
+        this.subscriptionInfo = notifyService.Subscribe(this.userService.InstanceId, "RefreshRooms", async () => await RefreshRoomsAsync());
+        base.OnAfterRender(firstRender);
+    }
+
+    public async Task RefreshRoomsAsync()
+    {
+        rooms = roomService.GetAllRoomsNotInGame().ToHashSet();
+        await this.InvokeAsync(this.StateHasChanged);
+    }
+
+    public void JoinRoom(string roomId)
+    {
+        var joined = roomService.AddPlayerToRoom(userService.UserId, roomId);
+        if (joined)
+        {
+            navManager.NavigateTo($"/rooms/{roomId}");
+        }
+    }
+
+    public void Dispose()
+    {
+        this.notifyService.Unsubscribe(this.subscriptionInfo[0], this.subscriptionInfo[1]);
+    }
+}

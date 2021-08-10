@@ -1,0 +1,102 @@
+﻿@inject CurrentUserService userService
+@inject GameRoomsService roomsService
+@inject NotifyService notifyService
+@inject IJSRuntime JS
+
+@implements IAsyncDisposable
+
+<div class="chat-box rounded">
+    <p>Chat</p>
+    @if (this.chatList.Count > 0)
+    {
+        <div class="chat-list mb-2">
+            <table>
+                @foreach (var chat in this.chatList)
+                {
+                    <tr title="@chat?.Timestamp.ToLocalTime().ToString("T")">
+                        <td>@chat?.PlayerName</td>
+                        <td>@chat?.Message</td>
+                    </tr>
+                }
+            </table>
+        </div>
+    }
+    else
+    {
+        <div>No messages</div>
+    }
+    <EditForm Model="chatModel" OnValidSubmit="SendChat">
+        <div>
+            <InputText @bind-Value="chatModel.Message" class="rounded" />
+            <button class="btn btn-outline-info">Send</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public string RoomId { get; set; }
+
+    [Parameter]
+    public Action NewChatNotify { get; set; }
+
+    private IJSObjectReference module;
+    public ChatInputModel chatModel = new ChatInputModel();
+    private ICollection<ChatModel> chatList;
+    private string[] subscriptionInfo = new string[0];
+
+    protected override async Task OnInitializedAsync()
+    {
+        this.chatList = this.roomsService.GetRoom(this.RoomId).ChatList;
+        this.subscriptionInfo = this.notifyService.Subscribe(this.userService.InstanceId, "NewChat", async () =>
+        {
+            this.chatList = this.roomsService.GetRoom(this.RoomId).ChatList;
+            await this.InvokeAsync(this.StateHasChanged);
+            try
+            {
+                await this.module.InvokeVoidAsync("scrollChat");
+            }
+            catch (Exception)
+            {
+            }
+
+            this.NewChatNotify?.Invoke();
+        });
+
+        this.module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/scriptModules.js");
+        await base.OnInitializedAsync();
+        await this.module.InvokeVoidAsync("scrollChat");
+
+    }
+
+    public void SendChat()
+    {
+        if (string.IsNullOrEmpty(chatModel.Message))
+        {
+            return;
+        }
+
+        var chat = new ChatModel
+        {
+            Message = chatModel.Message,
+            PlayerName = this.userService.Username,
+            RoomId = this.RoomId,
+        };
+
+        chatModel.Message = string.Empty;
+        this.roomsService.AddChatMessageToRoom(this.RoomId, chat);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (this.subscriptionInfo.Length > 0)
+        {
+            this.notifyService.Unsubscribe(this.userService.InstanceId, "NewChat");
+        }
+
+        if (this.module is not null)
+        {
+            await this.module.DisposeAsync();
+        }
+    }
+}

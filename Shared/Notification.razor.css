@@ -1,0 +1,8 @@
+﻿.alert {
+    min-width: 250px;
+    z-index: 9999;
+}
+
+.close {
+    margin-left: 10px;
+}

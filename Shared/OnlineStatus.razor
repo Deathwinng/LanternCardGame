@@ -1,0 +1,22 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+
+@if (ConnectionState == HubConnectionState.Connected)
+{
+    <a>Connected</a>
+}
+else if (ConnectionState == HubConnectionState.Disconnected)
+{
+    <a href="" @onclick="() => Reconnect.Invoke()" title="Reconnect">Disconnected</a>
+}
+else
+{
+    <a>Connecting...</a>
+}
+
+@code {
+    [Parameter]
+    public HubConnectionState ConnectionState { get; set; }
+
+    [Parameter]
+    public Action Reconnect { get; set; }
+}

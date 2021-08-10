@@ -1,0 +1,341 @@
+﻿#leave-game-bg.hide {
+    display: none;
+}
+
+#leave-game-bg.show {
+    display: block;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: #0000009c;
+    z-index: 2;
+}
+
+    #leave-game-bg.show #leave-game-ui {
+        padding: 25px;
+        position: absolute;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        top: 50%;
+        background: white;
+    }
+
+        #leave-game-bg.show #leave-game-ui .text {
+            font-size: 25px;
+        }
+
+        #leave-game-bg.show #leave-game-ui .buttons {
+            display: flex;
+            justify-content: center;
+        }
+
+            #leave-game-bg.show #leave-game-ui .buttons button {
+                margin: 0 5px;
+                min-width: 100px;
+                justify-content: center;
+            }
+
+#game-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#round-over {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    font-size: 30px;
+    padding: 30px;
+    margin: 20px;
+}
+
+    #round-over #message-headline {
+        flex: 0 1 auto;
+        text-align: center;
+        font-size: 36px;
+    }
+
+    #round-over #message {
+        flex: 1 1 auto;
+        text-align: center;
+    }
+
+    #round-over .players-list {
+        flex: 1 1 auto;
+        text-align: center;
+    }
+
+    #round-over #game-over-buttons {
+        display: flex;
+        justify-content: center;
+    }
+
+        #round-over #game-over-buttons button {
+            flex: 1 1 0;
+            margin: 0 5px;
+        }
+
+#oposing-players-decks {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    justify-content: center;
+}
+
+.oposing-player-deck {
+    display: flex;
+    margin: 0 35px;
+    margin-top: -10px;
+}
+
+.oposing-player-name {
+    text-align: center;
+    border-radius: 5px;
+    margin-top: 10px;
+    font-size: 20px;
+}
+
+    .oposing-player-name.highlighted {
+        box-shadow: 0 0 10px 0px #00ff63
+    }
+
+#middle-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1 1 auto;
+    position: relative;
+}
+
+    #middle-section #game-info-wrapper {
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        flex: 1 1 0;
+    }
+
+        #middle-section #game-info-wrapper #game-info {
+            padding: 15px;
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+        }
+
+        #middle-section #game-info-wrapper #points-table td:last-child {
+            text-align: right;
+        }
+
+    #middle-section #chat {
+        flex: 1 1 0;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+    }
+
+        #middle-section #chat ::deep .chat-box {
+            max-width: 300px;
+            font-size: 18px;
+            flex: 1 1 0;
+            padding: 15px;
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+        }
+
+            #middle-section #chat ::deep .chat-box .chat-list {
+                max-height: 150px;
+                font-size: 18px;
+            }
+
+            #middle-section #chat ::deep .chat-box form div {
+                display: flex;
+            }
+
+            #middle-section #chat ::deep .chat-box form input {
+                width: 100px;
+                flex: 1 1 0;
+            }
+
+    #middle-section #main-deck-wrapper {
+        position: relative;
+        width: min-content;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 0 15px;
+        flex: 1 1 0;
+    }
+
+        #middle-section #main-deck-wrapper #main-deck div {
+            display: flex;
+            position: relative;
+        }
+
+        #middle-section #main-deck-wrapper #player-turn-name {
+            font-size: 30px;
+            color: darkgray;
+        }
+
+            #middle-section #main-deck-wrapper #player-turn-name.my-turn {
+                font-weight: bold;
+                color: black;
+            }
+
+#deck-cards-left {
+    position: absolute;
+    right: 52px;
+    top: 76px;
+    font-size: 30px;
+    font-weight: bold;
+    text-align: center;
+    width: 35px;
+    user-select: none;
+}
+
+#player-deck {
+    display: flex;
+    flex: 0 1 auto;
+    margin-bottom: 15px;
+    justify-content: center;
+}
+
+#bottom-buttons {
+    flex: 0 1 auto;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+#bottom-buttons-dev {
+    position: absolute;
+    bottom: 10px;
+    left: 20px;
+}
+
+#middle-section #chat-toggle,
+#middle-section #game-info-toggle {
+    display: none;
+}
+
+/*#player-deck ::deep .card:first-child {
+    animation-name: rotate-card;
+    animation-delay: 1s;
+    animation-duration: 1s;
+}
+
+@keyframes rotate-card {
+    0% {
+        position: fixed;
+        top: 270.5px;
+        left: 536.6000366210938px;
+    }
+
+    99% {
+    }
+
+    100% {
+        top: 479px;
+        left: 24.600000381469727px;
+        position: relative;
+    }
+}*/
+
+
+@media (max-width: 900px) {
+    #leave-game-bg.show #leave-game-ui {
+        min-width: 90vw;
+    }
+
+    #round-over {
+        margin: 0;
+        margin-bottom: 20px;
+    }
+
+    #middle-section #game-info-toggle,
+    #middle-section #chat-toggle {
+        background: #ffe6e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 35px;
+        font-size: 20px;
+        height: 100px;
+        cursor: pointer;
+        /*box-shadow: 0 0 5px #0000005c;*/
+    }
+
+        #middle-section #game-info-toggle.collapsed,
+        #middle-section #chat-toggle.collapsed {
+            background: white;
+        }
+
+    #middle-section #game-info-wrapper,
+    #middle-section #game-info-toggle {
+        left: 0;
+    }
+
+    #middle-section #chat-toggle {
+        right: 0;
+    }
+
+    #middle-section #game-info-wrapper {
+        display: flex;
+        flex-direction: row-reverse;
+    }
+
+    #middle-section #chat, #middle-section #game-info-wrapper {
+        position: fixed;
+        background: white;
+        z-index: 1;
+        box-shadow: 0 0 5px #0000005c;
+    }
+
+        #middle-section #chat.notify {
+            animation-name: new-chat;
+            animation-duration: 500ms;
+            animation-iteration-count: infinite;
+            animation-direction: alternate;
+        }
+
+    #middle-section #chat {
+        right: 0;
+    }
+
+    #middle-section #game-info-wrapper #game-info {
+        display: block;
+        margin: 20px;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    #middle-section #chat ::deep .chat-box {
+        margin: 20px;
+        display: block;
+        max-width: 70vw;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    #middle-section #chat ::deep .chat-list {
+        max-height: 50vh;
+    }
+
+    #middle-section #chat-toggle.collapsed ~ ::deep .chat-box,
+    #middle-section #game-info-toggle.collapsed ~ #game-info {
+        display: none;
+    }
+
+    #middle-section #chat ::deep .chat-box form input {
+        width: auto;
+    }
+
+    @keyframes new-chat {
+        from {
+            box-shadow: 0 0 10px #0080807a;
+        }
+
+        to {
+            box-shadow: 0 0 15px teal;
+        }
+    }
+}

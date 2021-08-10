@@ -1,0 +1,25 @@
+﻿@using Shared.Enums 
+
+<div class="alert alert-@this.Type.ToString().ToLower() fade show" role="alert">
+    @this.Message
+    @if (this.IsDissmissable)
+    {
+        <button type="button" class="close" aria-label="Close" @onclick="this.Delete">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Message { get; set; }
+
+    [Parameter]
+    public NotificationType Type { get; set; }
+
+    [Parameter]
+    public bool IsDissmissable { get; set; }
+
+    [Parameter]
+    public Action Delete { get; set; }
+}

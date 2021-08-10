@@ -1,0 +1,12 @@
+﻿<div @onclick="OnClick" class="card card-back @(IsMini ? "card-mini" : "") @(Highlight ? "highlight" : "")"></div>
+
+@code {
+    [Parameter]
+    public bool IsMini { get; set; } = false;
+
+    [Parameter]
+    public bool Highlight { get; set; } = false;
+
+    [Parameter]
+    public Action OnClick { get; set; }
+}

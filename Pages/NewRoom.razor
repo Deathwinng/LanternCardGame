@@ -1,0 +1,59 @@
+﻿@page "/newRoom"
+
+@attribute [Authorize]
+@inject GameRoomsService roomsService
+@inject CurrentUserService userService
+@inject NavigationManager navManager
+
+<h1>Create new room</h1>
+
+<EditForm Model="@this.model" OnValidSubmit="HandleCreateNewRoom">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="input-group mb-2">
+        <div class="input-group-prepend">
+            <span class="input-group-text">Room name:</span>
+        </div>
+        <InputText @bind-Value="@this.model.Name" class="form-control" />
+    </div>
+    <div class="input-group mb-2">
+        <div class="input-group-prepend">
+            <span class="input-group-text">Number of players:</span>
+        </div>
+        <InputNumber @bind-Value="@this.model.NumberOfPlayers" class="form-control" min="1" max="4" />
+    </div>
+    <div class="input-group mb-2">
+        <div class="input-group-prepend">
+            <span class="input-group-text">Max points to finish game:</span>
+        </div>
+        <InputNumber @bind-Value="@this.model.MaxPoints" class="form-control" min="20" max="1000" />
+    </div>
+
+    @if (this.userService.UserEmail == "metin.94.1@gmail.com")
+    {
+        <div class="input-group mb-2">
+            <div class="input-group-prepend">
+                <span class="input-group-text">Start the game in developer mode:</span>
+            </div>
+            <InputCheckbox @bind-Value="@this.model.DeveloperMode" class="form-control" />
+        </div>
+    }
+
+    <button class="btn btn-outline-primary">Create new room</button>
+</EditForm>
+
+@code {
+    NewRoomModel model;
+
+    protected override void OnInitialized()
+    {
+        this.model = new NewRoomModel();
+        base.OnInitialized();
+    }
+
+    private void HandleCreateNewRoom()
+    {
+        var roomId = this.roomsService.CreateNewRoom(this.userService.UserId, this.model);
+        this.navManager.NavigateTo($"/rooms/{roomId}");
+    }
+}

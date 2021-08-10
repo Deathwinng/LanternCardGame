@@ -1,0 +1,141 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+
+@using Enums
+@using System.Timers
+
+@inject NavigationManager NavigationManager
+@inject OnlinePlayersService playersService
+@inject UserService userService
+@inject NotifyService notifyService
+@inject NotificationService notificationService
+@inject CurrentUserService currentUserService
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu ShowNavMenu="!this.duplicatePlayer" OnlinePlayers="this.onlinePlayers" Player="this.player" />
+    </div>
+
+    <div class="main">
+        <div class="content px-4">
+            @Body
+        </div>
+
+        <div id="notifications">
+            @foreach (var notification in this.notifications)
+            {
+                <Notification Message="@notification.Message"
+                              Type="notification.Type"
+                              IsDissmissable="notification.IsDissmissable"
+                              Delete="() => this.DeleteNotification(notification.Id)" />
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string message = String.Empty;
+    private IList<NotificationModel> notifications = new List<NotificationModel>();
+    private ICollection<PlayerModel> onlinePlayers = new List<PlayerModel>();
+    private bool duplicatePlayer = false;
+    private IList<string[]> subscriptionsInfo = new List<string[]>();
+    private PlayerModel player;
+    private string duplicatePlayerNotificationId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await this.currentUserService.Initialize();
+        await base.OnInitializedAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            foreach (var notification in this.notifications.Where(x => x.DissmissTimerInSeconds > 0 && !x.TimerStarted))
+            {
+                var timer = new Timer(notification.DissmissTimerInSeconds * 1000.0)
+                {
+                    AutoReset = false,
+                };
+
+                timer.Elapsed += async (Object source, ElapsedEventArgs e) =>
+                {
+                    this.notificationService.RemovePlayerNotification(notification.Id);
+                    this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
+                    await InvokeAsync(this.StateHasChanged);
+                    timer.Dispose();
+                };
+
+                timer.Start();
+                notification.TimerStarted = true;
+            }
+
+            return;
+        }
+        if (this.currentUserService.IsAuthenticated)
+        {
+            this.player = this.playersService.PlayerConnected(this.currentUserService.UserId, this.currentUserService.Username);
+            this.currentUserService.InstanceId = this.player.InstanceId;
+
+            this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "ReceiveNotification", async () =>
+            {
+                this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
+                await InvokeAsync(this.StateHasChanged);
+            }));
+
+            this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "UpdateOnlinePlayers", async () => await UpdateOnlinePlayersAsync()));
+
+            this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "DuplicateUser", this.DuplicateUser));
+
+            this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "DuplicateUserCleared", async () =>
+            {
+                this.duplicatePlayer = false;
+                this.notificationService.RemovePlayerNotification(this.duplicatePlayerNotificationId);
+                this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
+                await InvokeAsync(this.StateHasChanged);
+            }));
+
+            this.onlinePlayers = this.playersService.GetPlayersOnline().ToHashSet();
+            this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
+            this.StateHasChanged();
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    public void DeleteNotification(string notificationId, double dissmissTimerInSeconds = 0)
+    {
+        this.notificationService.RemovePlayerNotification(notificationId);
+        this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
+        this.StateHasChanged();
+    }
+
+    public async Task UpdateOnlinePlayersAsync()
+    {
+        this.onlinePlayers = this.playersService.GetPlayersOnline().ToList();
+        await InvokeAsync(this.StateHasChanged);
+    }
+
+    private void DuplicateUser()
+    {
+        this.duplicatePlayer = true;
+        this.duplicatePlayerNotificationId = this.notificationService.AddPlayerNotification(this.player.InstanceId, "User account already connected to the server!", 0, NotificationType.Danger, false);
+        this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
+        this.NavigationManager.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        if (this.currentUserService?.IsAuthenticated ?? false)
+        {
+            this.playersService.PlayerDisconnected(this.currentUserService.InstanceId);
+            this.notifyService.Unsubscribe(this.currentUserService.InstanceId);
+            this.notificationService.RemoveAllPlayerNotifications(this.currentUserService.InstanceId);
+            foreach (var subscriptionInfo in subscriptionsInfo)
+            {
+                this.notifyService.Unsubscribe(subscriptionInfo[0], subscriptionInfo[1]);
+            }
+        }
+    }
+}

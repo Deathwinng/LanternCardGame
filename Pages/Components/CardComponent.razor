@@ -1,0 +1,66 @@
+﻿@using LanternCardGame.Game.Cards
+
+<div id="@Card?.Id"
+     @onclick="OnClick"
+     class="card card-@Card?.CardSuit.ToString().ToLower() @(IsPlayerCard ? "player-card" : null) @(Highlight ? "highlight" : null) @(HighlightMove ? "highlight-move" : null) @(HighlightWin? "light-up" : null) @(Card == null ? "empty" : null)">
+    @if (Card != null)
+    {
+        <div class="card-type @(Card.CardType == CardType.Joker ? "joker" : "")">
+            @(
+                Card.CardType switch
+                {
+                    CardType.Ace => "A",
+                    CardType.Two => (int)Card.CardType,
+                    CardType.Three => (int)Card.CardType,
+                    CardType.Four => (int)Card.CardType,
+                    CardType.Five => (int)Card.CardType,
+                    CardType.Six => (int)Card.CardType,
+                    CardType.Seven => (int)Card.CardType,
+                    CardType.Eight => (int)Card.CardType,
+                    CardType.Nine => (int)Card.CardType,
+                    CardType.Ten => (int)Card.CardType,
+                    CardType.Jack => "J",
+                    CardType.Queen => "Q",
+                    CardType.King => "K",
+                    CardType.Joker => "Joker",
+                    _ => null
+                })
+        </div>
+        if (Card.CardType != CardType.Joker)
+        {
+            <img class="card-suit" src="
+            @(Card.CardSuit switch
+              {
+                  CardSuit.Club => "/svg/clubs.svg",
+                  CardSuit.Diamond => "/svg/diamond.svg",
+                  CardSuit.Heart => "/svg/heart.svg",
+                  CardSuit.Spade => "/svg/spade.svg",
+                  _ => null
+              })" />
+        }
+        <div class="card-pair pair-id-@this.PairId"></div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Card Card { get; set; }
+
+    [Parameter]
+    public bool IsPlayerCard { get; set; } = false;
+
+    [Parameter]
+    public bool Highlight { get; set; } = false;
+
+    [Parameter]
+    public bool HighlightMove { get; set; } = false;
+
+    [Parameter]
+    public bool HighlightWin { get; set; } = false;
+
+    [Parameter]
+    public Action OnClick { get; set; }
+
+    [Parameter]
+    public int PairId { get; set; } = -1;
+}

@@ -1,0 +1,713 @@
+﻿@page "/game/{GameId}"
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@attribute [Authorize]
+
+@using LanternCardGame.Game
+@using LanternCardGame.Game.Cards
+@using LanternCardGame.Pages.Components
+
+@inject GameRoomsService roomService
+@inject CurrentUserService userService
+@inject OnlinePlayersService playersService
+@inject GameService gameService
+@inject NotifyService notifyService
+@inject NavigationManager navigationManager
+
+@if (this.playersReady)
+{
+    @if (this.developerMode && this.room.PlayerCount == 1)
+    {
+        <span>DEVELOPER MODE</span>
+        <div>
+            @foreach (var cards in this.allCards)
+            {
+                <div style="display: flex; ">
+                    @foreach (var card in cards)
+                    {
+                        <CardComponent OnClick="() => DrawAny(card.Id)" Card="card" />
+                    }
+                </div>
+            }
+        </div>
+        <div id="bottom-buttons-dev">
+            <div>
+                <button class="btn btn-primary" @onclick="SortBySuit">Sort by Suit</button>
+            </div>
+            <div>
+                <button class="btn btn-primary" @onclick="SortByType">Sort by Numbers</button>
+            </div>
+        </div>
+        <div class="player-deck" style="display: flex; margin-bottom: 20px; justify-content: center;">
+            @foreach (var card in this.playerCards)
+            {
+                <CardComponent OnClick="() => this.PlayersCardsClickHandler(card.Id)"
+                               IsPlayerCard="true"
+                               Card="card"
+                               HighlightMove="this.cardToMoveSelected && this.cardToMoveSelectedId == card.Id"
+                               HighlightWin="this.cardsToThrowToLightUp.Any(x => x == card.Id)"
+                               PairId="this.pairCardsGroups.FindIndex(x => x.Any(y => y.Id == card.Id))" />
+            }
+        </div>
+
+        <style>
+            .card {
+                margin: -35px -20px !important;
+            }
+
+            .player-deck {
+                margin-top: 80px !important;
+            }
+        </style>
+    }
+    else
+    {
+        <div id="leave-game-bg" class="@(this.leavingGamePopup ? "show" : "hide")">
+            <div id="leave-game-ui" class="rounded">
+                <div class="text mb-3">
+                    Game will be ended. Are you sure?
+                </div>
+                <div class="buttons">
+                    <button class="btn btn-success" @onclick="async () => await this.LeaveMidGameTogglePopupAsync()">Stay</button>
+                    <button class="btn btn-outline-danger" @onclick="this.LeaveMidGame">Leave</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-content">
+            @if (this.roundOver || this.roundWon || this.gameOver)
+            {
+                var messageHeadline = string.Empty;
+                var message = string.Empty;
+                @if (this.roundWon)
+                {
+                    messageHeadline = "Congratulations! You won this round!";
+                    message = "10 points substracted from your score. Waiting for other players to arrange their cards.";
+                }
+                else if (this.roundOver)
+                {
+                    if (string.IsNullOrEmpty(this.roundWinner))
+                    {
+                        messageHeadline = $"Round over!";
+                    }
+                    else
+                    {
+                        messageHeadline = $"{this.roundWinner} lit up!";
+                    }
+
+                    message += $" Arrange your cards for points counting. Adding {this.roundOverPoints} points to your score.";
+                }
+                else if (this.gameOver)
+                {
+                    messageHeadline = "Game over!";
+                }
+
+                <div id="round-over" class="border rounded shadow">
+                    <div id="message-headline" class="mb-4">
+                        @messageHeadline
+                    </div>
+
+                    <div id="message">
+                        @message
+                    </div>
+
+                    @if (this.gameOver)
+                    {
+                        var playerPoints = this.gameInfo.PlayersPoints.OrderBy(kvp => kvp.Value).ToList();
+                        <ul class="list-unstyled mt-3 players-list">
+                            @for (int i = 0; i < playerPoints.Count; i++)
+                            {
+                                <li>@(i + 1): @(playerPoints[i].Key == this.userService.Username ? "You" : playerPoints[i].Key) - @playerPoints[i].Value poins</li>
+                            }
+                        </ul>
+                    }
+
+                    @if (this.roundOver && !this.roundOverReady)
+                    {
+                        <button @onclick="this.FinishArraging" class="btn btn-outline-primary">Finish</button>
+                    }
+                    else if (!this.gameOver)
+                    {
+                        <button class="btn btn-success" disabled>
+                            Waiting for others.
+                            <span class="spinner-border spinner-border-sm"></span>
+                        </button>
+                    }
+                    else if (this.gameOver)
+                    {
+                        <div id="game-over-buttons">
+                            <button class="btn btn-success"
+                                    disabled="@(!this.replayButtonActive)"
+                                    @onclick="this.Replay">
+                                @this.numberOfReplayReadyPlayers / @this.gameInfo.PlayersCardsNumber.Count Play again?
+                            </button>
+
+                            <button class="btn btn-danger"
+                                    @onclick='() => this.navigationManager.NavigateTo("/")'>
+                                Leave
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div id="oposing-players-decks">
+                    @foreach (var kvp in this.gameInfo.PlayersCardsNumber.Where(x => x.Key != this.userService.Username))
+                    {
+                        <div>
+                            <div id="player-@kvp.Key" class="oposing-player-deck">
+                                @{
+                                    @for (int i = 0; i < kvp.Value; i++)
+                                    {
+                                        <CardBackComponent IsMini="true" @key="i" />
+                                    }}
+                            </div>
+                            <div class="oposing-player-name
+                            @(this.gameInfo.CurrentTurnPlayerUsername == kvp.Key ? "highlighted" : "")">
+                                @kvp.Key
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <section id="middle-section">
+                    <div id="game-info-wrapper" class="rounded-right">
+                        <div id="game-info-toggle" class="rounded@(this.infoCollapsed ? "-right collapsed" : null)" @onclick="this.ToggleInfo">
+                            <span class="oi @(this.infoCollapsed ? "oi-expand-left" : "oi-expand-right")"></span>
+                        </div>
+                        <div id="game-info" class="rounded">
+                            <table id="points-table" class="mb-3">
+                                <thead>
+                                    <tr>
+                                        <th>Points</th>
+                                    </tr>
+                                </thead>
+                                @foreach (var kvp in this.gameInfo.PlayersPoints)
+                                {
+                                    <tr>
+                                        <td>@(kvp.Key == this.userService?.Username ? "You" : kvp.Key): </td>
+                                        <td> @kvp.Value / @this.room?.MaxPoints</td>
+                                    </tr>
+                                }
+                            </table>
+                            <div>Round: @(this.gameInfo.RoundsPlayed + 1)</div>
+                            <div>Rotations: @(this.gameInfo.RotationsPerRoundsPlayed)</div>
+                        </div>
+                    </div>
+
+                    <div id="main-deck-wrapper">
+                        <div id="player-turn-name"
+                             class="mb-1 @(this.myTurn || this.roundWon || this.roundOver ? "my-turn" : null)">
+                            @(this.myTurn ? "Your turn!" : $"{this.gameInfo.CurrentTurnPlayerUsername}'s turn.")
+                        </div>
+
+                        <div id="main-deck">
+                            <div>
+                                <CardComponent OnClick="this.DrawFromEmptyDeck"
+                                               Highlight="this.allowedMoves.DrawFromEmptyDeck && this.myTurn"
+                                               Card="this.gameInfo?.EmptyDeckTopCard" />
+
+                                @if (this.gameInfo.DeckCardsLeft > 0)
+                                {
+                                    <CardBackComponent OnClick="this.DrawFromDeck"
+                                                       Highlight="this.allowedMoves.DrawFromDeck && this.myTurn" />
+                                }
+                                else
+                                {
+                                    <CardComponent />
+                                }
+                                <span id="deck-cards-left" @onclick="this.DrawFromDeck">@this.gameInfo?.DeckCardsLeft</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="chat" class="rounded-left@(this.newChatNotify ? " notify" : null)">
+                        <div id="chat-toggle" class="rounded@(this.chatCollapsed ? "-left collapsed" : null)" @onclick="this.ToggleChat">
+                            <span class="oi @(this.chatCollapsed ? "oi-expand-right" : "oi-expand-left")"></span>
+                        </div>
+                        <ChatComponent NewChatNotify="async () => await this.NewChatNotifyAsync()" RoomId="@this.GameId" />
+                    </div>
+
+                </section>
+            }
+
+            @if (!this.gameOver)
+            {
+                <div id="player-deck">
+                    @foreach (var card in this.playerCards)
+                    {
+                        <CardComponent OnClick="() => this.PlayersCardsClickHandler(card.Id)"
+                                       Highlight="this.allowedMoves.PutToEmptyDeck && this.myTurn"
+                                       IsPlayerCard="true"
+                                       Card="card"
+                                       HighlightMove="this.cardToMoveSelected && this.cardToMoveSelectedId == card.Id"
+                                       HighlightWin="this.cardsToThrowToLightUp.Any(x => x == card.Id) && this.allowedMoves.LightUp"
+                                       PairId="this.pairCardsGroups.FindIndex(x => x.Any(y => y.Id == card.Id))" />
+                    }
+                </div>
+                <div id="bottom-buttons">
+                    <div>
+                        @{ var disabled = this.roundWon || this.roundOverReady;}
+                        <button class="btn btn-outline-primary" disabled="@disabled" @onclick="this.SortBySuit">Sort by Suit</button>
+                        <button class="btn btn-outline-primary" disabled="@disabled" @onclick="this.SortByType">Sort by Numbers</button>
+                    </div>
+                    <div>
+                        @if (this.userService.UserEmail == "metin.94.1@gmail.com")
+                        {
+                            <button class="btn btn-outline-warning" @onclick="() => this.gameService.EndRound(this.GameId)">End Round</button>
+                        }
+                        <button class="btn btn-danger" @onclick="async () => await this.LeaveMidGameTogglePopupAsync()">Leave Game</button>
+                    </div>
+                </div>
+            }
+
+        </div>
+    }
+}
+else
+{
+    <h3>Waiting for other players... </h3>
+    <div class="spinner-border"></div>
+}
+
+@code {
+    [Parameter]
+    public string GameId { get; set; }
+
+    private IJSObjectReference module;
+    private GameRoomModel room;
+    private PlayerModel player;
+    private List<Card> playerCards = new List<Card>(10);
+    private List<List<Card>> allCards = new List<List<Card>>(4);
+    private List<List<Card>> pairCardsGroups = new List<List<Card>>();
+    private int[] cardsToThrowToLightUp = new int[0];
+    private bool playersReady = false;
+    private bool gameDropped = false;
+    private ICollection<string[]> subscriptionsInfo = new HashSet<string[]>();
+    private PlayerTurnAllowedMoves allowedMoves = new PlayerTurnAllowedMoves();
+    private GameInfo gameInfo = new GameInfo();
+    private bool myTurn = false;
+    private bool roundWon = false;
+    private bool roundOver = false;
+    private string roundWinner = null;
+    private bool gameOver = false;
+    private bool roundOverReady = false;
+    private bool cardToMoveSelected = false;
+    private bool chatCollapsed = true;
+    private bool infoCollapsed = true;
+    private bool newChatNotify = false;
+    private bool leavingGamePopup = false;
+    private bool developerMode;
+    private int cardToMoveSelectedId;
+    private int roundOverPoints = 0;
+    private int numberOfReplayReadyPlayers = 0;
+    private bool replayButtonActive = true;
+
+    protected override void OnInitialized()
+    {
+        this.room = this.roomService.GetRoom(GameId);
+        this.player = this.playersService.GetPlayerById(this.userService.UserId);
+
+        base.OnInitialized();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            this.room = this.roomService.GetRoom(this.GameId);
+            if (this.room == null || (this.room != null && !this.room.Players.Any(x => x.InstanceId == this.userService.InstanceId)))
+            {
+                this.navigationManager.NavigateTo("/rooms");
+            }
+            else
+            {
+                this.module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/scriptModules.js");
+                await this.module.InvokeVoidAsync("addResizePlayerDeckEvent");
+                this.developerMode = this.room.InDeveloperMode;
+                if (!this.developerMode)
+                {
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "GameDropped", () =>
+                    {
+                        this.gameDropped = true;
+                        this.room = null;
+                        this.navigationManager.NavigateTo("/");
+                    }));
+
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "UpdateGameInfo", async () =>
+                    {
+                        this.gameInfo = this.gameService.GetGameInfo(GameId);
+                        await InvokeAsync(this.StateHasChanged);
+                    }));
+
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "RoundWon", () =>
+                    {
+                        this.myTurn = false;
+                        this.roundWon = true;
+                    }));
+
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "RoundOver", async () =>
+                    {
+                        this.myTurn = false;
+                        this.roundOverPoints = this.gameService.CalculatePlayerPoints(this.GameId, this.player.Id);
+                        this.roundOver = true;
+                        this.roundWinner = this.gameService.GetRoundWinner(this.GameId);
+                        await this.InvokeAsync(this.StateHasChanged);
+                    }));
+
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "GameOver", async () =>
+                    {
+                        this.myTurn = false;
+                        this.roundOver = false;
+                        this.roundOverReady = false;
+                        this.roundWon = false;
+                        this.gameOver = true;
+                        this.roundOverPoints = this.gameService.CalculatePlayerPoints(this.GameId, this.player.Id);
+                        await this.InvokeAsync(this.StateHasChanged);
+                    }));
+
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "MyTurn", async () =>
+                    {
+                        this.allowedMoves = this.gameService.GetCurrentPlayerTurnAllowedMoves(this.GameId);
+                        this.myTurn = true;
+                        this.pairCardsGroups = this.gameService.GetPairGroups(this.playerCards);
+                        this.cardsToThrowToLightUp = this.GetCardIdsToThrowToLightUp();
+                        await InvokeAsync(this.StateHasChanged);
+                    }));
+
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "NewRoundStarting", async () =>
+                    {
+                        this.roundOver = false;
+                        this.roundOverReady = false;
+                        this.roundWon = false;
+                        this.gameOver = false;
+                        this.replayButtonActive = true;
+                        this.playerCards = this.gameService.GetPlayerCards(this.GameId, this.player.Id).ToList();
+                        this.gameInfo = this.gameService.GetGameInfo(this.GameId);
+                        this.pairCardsGroups = this.gameService.GetPairGroups(this.playerCards);
+                        await InvokeAsync(this.StateHasChanged);
+                    }));
+
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "GetPlayerCards", async () => await GetPlayerCardsAsync()));
+
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "NumberOfReplayReadyPlayers", async () =>
+                    {
+                        this.numberOfReplayReadyPlayers = this.gameService.GetNumberOfPlayersReady(this.GameId);
+                        await this.InvokeAsync(this.StateHasChanged);
+                    }));
+
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "PlayerLeft", async () =>
+                    {
+                        this.replayButtonActive = false;
+                        await this.InvokeAsync(this.StateHasChanged);
+                    }));
+                }
+                else
+                {
+                    this.GetAllCards();
+                    this.StateHasChanged();
+                }
+
+                this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "AllPlayersReady", async () =>
+                {
+                    this.playersReady = true;
+                    await InvokeAsync(this.StateHasChanged);
+                }));
+
+                this.gameService.PlayerReady(this.GameId, this.player.Id);
+            }
+        }
+
+        if (this.module != null)
+        {
+            await this.module.InvokeVoidAsync("resizePlayerDeck");
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    public void FinishArraging()
+    {
+        this.roundOverReady = true;
+        this.gameService.RoundOverPlayerReady(this.GameId, this.player.Id);
+        this.StateHasChanged();
+    }
+
+    public async Task GetPlayerCardsAsync()
+    {
+        this.playerCards = this.gameService.GetPlayerCards(this.GameId, this.player.Id).ToList();
+        await InvokeAsync(this.StateHasChanged);
+    }
+
+    private void DrawAny(int cardId)
+    {
+        if (this.playerCards.Count < 10)
+        {
+            this.gameService.PutCardInPlayerDeck(this.GameId, this.player.Id, this.gameService.GetCard(GameId, cardId));
+            this.GetAllCards();
+            this.pairCardsGroups = this.gameService.GetPairGroups(this.playerCards);
+            this.cardsToThrowToLightUp = this.GetCardIdsToThrowToLightUp();
+            this.StateHasChanged();
+        }
+    }
+
+    private void PutAny(int cardId)
+    {
+        if (this.playerCards.Count > 9)
+        {
+            var card = this.playerCards.FirstOrDefault(x => x.Id == cardId);
+            this.gameService.PlayerPutCardInDeck(GameId, player.Id, card);
+            this.GetAllCards();
+            this.StateHasChanged();
+        }
+    }
+
+    private void GetAllCards()
+    {
+        var allCards = this.gameService.SeeAllCardsInDeck(this.GameId).ToList();
+        this.allCards.Clear();
+        for (int i = 1; i < 5; i++)
+        {
+            this.allCards.Add(allCards.Where(x => x.CardSuit == (CardSuit)i).OrderBy(x => x.CardType).ToList());
+        }
+
+        this.playerCards = this.gameService.GetPlayerCards(GameId, this.player.Id).ToList();
+        this.pairCardsGroups = this.gameService.GetPairGroups(this.playerCards);
+        this.cardsToThrowToLightUp = this.GetCardIdsToThrowToLightUp();
+    }
+
+    private void Replay()
+    {
+        this.replayButtonActive = false;
+        this.gameService.GameOverPlayerReplay(this.GameId, this.player.Id);
+    }
+
+    private int[] GetCardIdsToThrowToLightUp()
+    {
+        var pairCardsNumber = this.pairCardsGroups.Where(x => x.Count > 2).Sum(x => x.Count);
+        if (pairCardsNumber == 9)
+        {
+            var card = this.playerCards.Except(this.pairCardsGroups.SelectMany(x => x)).FirstOrDefault();
+            if (card == null)
+            {
+                return new int[0];
+            }
+
+            return new int[] { card.Id };
+        }
+        else if (pairCardsNumber == 10)
+        {
+            var biggestPairGroup = new List<Card>
+    ();
+            var biggestPair = 0;
+            foreach (var group in this.pairCardsGroups)
+            {
+                if (group.Count > biggestPair)
+                {
+                    biggestPair = group.Count;
+                    biggestPairGroup = group;
+                }
+            }
+
+            var cardsTypeSum = biggestPairGroup.Where(x => x.CardType != CardType.Joker).Sum(x => (int)x.CardType);
+            if ((double)cardsTypeSum / biggestPairGroup.Where(x => x.CardType != CardType.Joker).Count() == (double)biggestPairGroup[0].CardType)
+            {
+                if (biggestPairGroup[1].CardType == CardType.Joker)
+                {
+                    return biggestPairGroup.Skip(1).Select(x => x.Id).ToArray();
+                }
+
+                return biggestPairGroup.Select(x => x.Id).ToArray();
+            }
+
+            if (biggestPairGroup[1].CardType == CardType.Joker)
+            {
+                return new int[] { biggestPairGroup[biggestPairGroup.Count - 1].Id };
+            }
+
+            return new int[] { biggestPairGroup[0].Id, biggestPairGroup[biggestPairGroup.Count - 1].Id };
+        }
+
+        return new int[0];
+    }
+
+    private void PutCardToEmptyDeck(int cardId)
+    {
+        if (!this.myTurn || !this.allowedMoves.PutToEmptyDeck)
+        {
+            return;
+        }
+
+        this.myTurn = false;
+        this.playerCards = this.gameService.PlayerPutCardInEmptyDeck(this.GameId, this.player.Id, cardId).ToList();
+        this.pairCardsGroups = this.gameService.GetPairGroups(this.playerCards);
+        this.StateHasChanged();
+    }
+
+    private void DrawFromDeck()
+    {
+        if (!this.myTurn || !this.allowedMoves.DrawFromDeck)
+        {
+            return;
+        }
+
+        this.myTurn = false;
+        this.playerCards = this.gameService.PlayerDrawNextCard(this.GameId, this.player.Id).ToList();
+        this.pairCardsGroups = this.gameService.GetPairGroups(this.playerCards);
+        this.cardsToThrowToLightUp = this.GetCardIdsToThrowToLightUp();
+        this.StateHasChanged();
+    }
+
+    private void DrawFromEmptyDeck()
+    {
+        if (!this.myTurn || !this.allowedMoves.DrawFromEmptyDeck)
+        {
+            return;
+        }
+
+        this.myTurn = false;
+        this.playerCards = this.gameService.PlayerDrawEmptyDeckNextCard(this.GameId, this.player.Id).ToList();
+        this.pairCardsGroups = this.gameService.GetPairGroups(this.playerCards);
+        this.cardsToThrowToLightUp = this.GetCardIdsToThrowToLightUp();
+        this.StateHasChanged();
+    }
+
+    private void SortBySuit()
+    {
+        this.playerCards = this.playerCards.OrderBy(x => x.CardSuit).ThenBy(x => x.CardType).ToList();
+        this.pairCardsGroups = this.gameService.PlayerArrangeCards(this.GameId, this.player.Id, this.playerCards);
+        if (this.roundOver)
+        {
+            this.roundOverPoints = this.gameService.CalculatePlayerPoints(this.GameId, this.player.Id);
+        }
+        else
+        {
+            this.cardsToThrowToLightUp = this.GetCardIdsToThrowToLightUp();
+        }
+
+        this.StateHasChanged();
+    }
+
+    private void SortByType()
+    {
+        this.playerCards = this.playerCards.OrderBy(x => x.CardType).ThenBy(x => x.CardSuit).ToList();
+        this.pairCardsGroups = this.gameService.PlayerArrangeCards(this.GameId, this.player.Id, this.playerCards);
+        if (this.roundOver)
+        {
+            this.roundOverPoints = this.gameService.CalculatePlayerPoints(this.GameId, this.player.Id);
+        }
+        else
+        {
+            this.cardsToThrowToLightUp = this.GetCardIdsToThrowToLightUp();
+        }
+
+        this.StateHasChanged();
+    }
+
+    private void PlayersCardsClickHandler(int cardId)
+    {
+        if (this.roundWon || this.roundOverReady)
+        {
+            return;
+        }
+
+        if (!this.cardToMoveSelected)
+        {
+            this.cardToMoveSelected = true;
+            this.cardToMoveSelectedId = cardId;
+        }
+        else
+        {
+            this.cardToMoveSelected = false;
+            if (!this.developerMode && this.myTurn && this.allowedMoves.PutToEmptyDeck && cardId == this.cardToMoveSelectedId)
+            {
+                PutCardToEmptyDeck(cardId);
+                return;
+            }
+            else if (this.developerMode && cardId == this.cardToMoveSelectedId)
+            {
+                this.PutAny(cardId);
+                return;
+            }
+
+            var newIndex = this.playerCards.FindIndex(x => x.Id == cardId);
+            var card = this.playerCards.FirstOrDefault(x => x.Id == this.cardToMoveSelectedId);
+            this.playerCards.Remove(card);
+            this.playerCards.Insert(newIndex, card);
+            this.pairCardsGroups = this.gameService.PlayerArrangeCards(this.GameId, this.player.Id, this.playerCards);
+            if (this.roundOver)
+            {
+                this.roundOverPoints = this.gameService.CalculatePlayerPoints(this.GameId, this.player.Id);
+            }
+            else
+            {
+                this.cardsToThrowToLightUp = this.GetCardIdsToThrowToLightUp();
+            }
+        }
+
+        this.StateHasChanged();
+    }
+
+    public async Task NewChatNotifyAsync()
+    {
+        if (this.chatCollapsed)
+        {
+            this.newChatNotify = true;
+            await this.InvokeAsync(this.StateHasChanged);
+        }
+    }
+
+    public void ToggleChat()
+    {
+        this.chatCollapsed = !this.chatCollapsed;
+        this.newChatNotify = false;
+    }
+
+    public void ToggleInfo()
+    {
+        this.infoCollapsed = !this.infoCollapsed;
+    }
+
+    private async Task LeaveMidGameTogglePopupAsync()
+    {
+        this.leavingGamePopup = !this.leavingGamePopup;
+        await this.InvokeAsync(this.StateHasChanged);
+    }
+
+    private void LeaveMidGame()
+    {
+        this.gameService.DropGame(this.GameId);
+    }
+
+    private void LeaveGame()
+    {
+        this.gameService.LeaveGame(this.GameId, this.player.Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (this.room != null && !this.gameDropped && this.roomService.IsPlayerInTheRoom(this.userService.InstanceId, this.GameId))
+        {
+            if (this.gameOver)
+            {
+                this.LeaveGame();
+            }
+            else
+            {
+                this.LeaveMidGame();
+            }
+        }
+
+        if (this.module is not null)
+        {
+            await this.module.InvokeVoidAsync("removeResizePlayerDeckEvent");
+            await this.module.DisposeAsync();
+        }
+
+        foreach (var subscriptionInfo in this.subscriptionsInfo)
+        {
+            this.notifyService.Unsubscribe(subscriptionInfo[0], subscriptionInfo[1]);
+        }
+    }
+}

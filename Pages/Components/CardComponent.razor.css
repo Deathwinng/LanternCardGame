@@ -1,0 +1,143 @@
+﻿.card {
+    width: 130px;
+    height: 185px;
+    margin: 5px;
+    padding: 10px;
+    line-height: 1;
+    border: 1px solid rgb(0 0 0 / 27%);
+    box-shadow: 0 0 4px 0px #00000054;
+    cursor: default;
+    user-select: none;
+    font-family: Helvetica;
+}
+
+.card.empty {
+    box-shadow: none;
+    background: #ececec;
+}
+
+.player-card {
+    margin: 5px -5px;
+}
+
+.card-diamond,
+.card-heart {
+    color: red;
+}
+
+.card-spade,
+.card-club {
+    color: black;
+}
+
+.card-suit {
+    position: relative;
+    width: 100%;
+    height: 45px;
+    top: 25px;
+}
+
+.card-type {
+    font-size: 35px;
+}
+
+.card.highlight-move {
+    margin-top: -10px !important;
+}
+
+.card.highlight {
+    cursor: pointer;
+    animation-name: breathe;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+.card.light-up {
+    animation-name: breathe-gold;
+    animation-duration: 500ms;
+}
+
+@keyframes breathe {
+    from {
+        box-shadow: 0 0 10px #00ff63;
+    }
+
+    to {
+        box-shadow: 0 0 10px #00ff635c;
+    }
+}
+
+@keyframes breathe-gold {
+    from {
+        box-shadow: 0 0 40px 10px gold;
+    }
+
+    to {
+        box-shadow: 0 0 40px 10px #ffd70075;
+    }
+}
+
+.card-pair {
+    width: 100%;
+    transform: translateX(-50%);
+    left: 50%;
+    position: absolute;
+    height: 2px;
+    bottom: 10px;
+}
+
+    .card-pair.pair-id-0 {
+        background: blue;
+    }
+
+    .card-pair.pair-id-1 {
+        background: red;
+    }
+
+    .card-pair.pair-id-2 {
+        background: limegreen;
+    }
+
+    .card-pair.pair-id-3 {
+        background: aqua;
+    }
+
+    .card-pair.pair-id-4 {
+        background: yellow;
+    }
+
+.joker {
+    writing-mode: vertical-lr;
+    text-orientation: upright;
+    letter-spacing: -12px;
+}
+
+@media (max-width: 900px) {
+    .card.player-card:not(:last-child) .card-suit {
+        width: 45px;
+    }
+}
+
+@media (max-width: 600px) {
+    .card.player-card:not(:last-child) .card-suit {
+        width: 30px;
+        top: -5px;
+    }
+
+    .card.player-card:not(:last-child) {
+        padding-left: 5px;
+        letter-spacing: -5px;
+    }
+
+    @keyframes breathe-gold {
+        from {
+            box-shadow: 0 0 5px #ffd70075;
+        }
+
+        to {
+            box-shadow: 0 0 10px gold;
+            color: gold;
+        }
+    }
+}

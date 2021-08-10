@@ -1,0 +1,48 @@
+﻿.card-back {
+    background: url('/img/cardBackRed.png') center;
+    background-size: contain;
+}
+
+.card {
+    width: 130px;
+    height: 185px;
+    margin: 5px;
+    border: 1px solid rgb(0 0 0 / 27%);
+    box-shadow: 0 0 4px 0px #00000054;
+}
+
+.card-mini {
+    width: 65px;
+    height: 92px;
+    margin: 0 -20px;
+}
+
+.card.highlight {
+    cursor: pointer;
+    animation-duration: 1s;
+    animation-name: breathe;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+@keyframes breathe {
+    from {
+        box-shadow: 0 0 10px 0px #00ff63;
+    }
+
+    to {
+        box-shadow: 0 0 10px 0px #00ff635c;
+    }
+}
+
+@media (max-width: 900px) {
+    .card-mini {
+        margin: 0 -25px;
+    }
+}
+
+@media (max-width: 600px) {
+    .card-mini {
+       margin: 0 -28px;
+    }
+}

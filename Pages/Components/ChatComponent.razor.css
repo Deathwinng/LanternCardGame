@@ -1,0 +1,12 @@
+﻿.chat-list {
+    overflow-y: auto;
+}
+
+td {
+    padding: 2px;
+    padding-right: 10px;
+}
+
+.chat-box ::deep input {
+    border: 1px #80808066 solid;
+}
