@@ -243,6 +243,11 @@ namespace LanternCardGame.Game
             return this.playersPoints[playerId];
         }
 
+        public IDictionary<string, int> GetAllPlayerPoints()
+        {
+            return this.playersPoints;
+        }
+
         public ICollection<Card> RearrangePlayerCards(string playerId, ICollection<Card> cards)
         {
             this.DoesPlayerExists(playerId);

@@ -73,7 +73,7 @@ namespace LanternCardGame.Services
                     this.UpdateGameInfo(gameId);
                     var currentPlayerId = gameInstance.CurrentTurnPlayerId;
                     var currentPlayerInstanceId = this.playersService.GetPlayerById(currentPlayerId).InstanceId;
-                    notifyService.InvokeByGroup(gameId, "AllPlayersReady");
+                    this.notifyService.InvokeByGroup(gameId, "AllPlayersReady");
                     notifyService.InvokeByPlayer(currentPlayerInstanceId, "MyTurn");
                     gameInstance.ResetPlayersReady();
                 }
@@ -92,10 +92,15 @@ namespace LanternCardGame.Services
                 {
                     if (gameInstance.IsMaxPointsReached)
                     {
-                        this.UpdateGameInfo(gameId);
-                        this.notifyService.InvokeByGroup(gameId, "GameOver");
                         gameInstance.ResetPlayersReady();
-                        notifyService.InvokeByGroup(gameId, "NumberOfReplayReadyPlayers");
+                        this.UpdateGameInfo(gameId);
+                        var playerPoints = gameInstance.GetAllPlayerPoints();
+                        var firstPlayer = playerPoints.Aggregate((x, y) => x.Value < y.Value ? x : y).Key;
+                        var lastPlayer = playerPoints.Aggregate((x, y) => x.Value > y.Value ? x : y).Key;
+                        this.notifyService.InvokeByPlayer(this.playersService.GetPlayerById(firstPlayer).InstanceId, "PlacedFirst");
+                        this.notifyService.InvokeByPlayer(this.playersService.GetPlayerById(lastPlayer).InstanceId, "PlacedLast");
+                        this.notifyService.InvokeByGroup(gameId, "GameOver");
+                        this.notifyService.InvokeByGroup(gameId, "NumberOfReplayReadyPlayers");
 
                         return;
                     }
@@ -118,7 +123,7 @@ namespace LanternCardGame.Services
                 this.DoesGameInstanceExists(gameId);
                 var gameInstance = this.GetGameInstance(gameId);
                 gameInstance.PlayerReady(playerId);
-                notifyService.InvokeByGroup(gameId, "NumberOfReplayReadyPlayers");
+                this.notifyService.InvokeByGroup(gameId, "NumberOfReplayReadyPlayers");
                 if (gameInstance.AllPlayersReady)
                 {
                     gameInstance.Restart();
@@ -127,7 +132,7 @@ namespace LanternCardGame.Services
                     gameInstance.ResetPlayersReady();
                     var currentPlayerId = gameInstance.CurrentTurnPlayerId;
                     var currentPlayerInstanceId = this.playersService.GetPlayerById(currentPlayerId).InstanceId;
-                    notifyService.InvokeByGroup(gameId, "NewRoundStarting");
+                    this.notifyService.InvokeByGroup(gameId, "NewRoundStarting");
                     notifyService.InvokeByPlayer(currentPlayerInstanceId, "MyTurn");
                     this.UpdateGameInfo(gameId);
                 }
@@ -446,8 +451,8 @@ namespace LanternCardGame.Services
                     {
                         counter++;
                     }
-                    if (k == group2.Count - 1 && k == counter - 1) // 1 2 3   4
-                    {                                                   // 0 1 2
+                    if (k == group2.Count - 1 && k == counter - 1)
+                    { 
                         group2.Add(cards[i]);
                         index2++;
                         break;

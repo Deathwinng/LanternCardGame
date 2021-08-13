@@ -87,7 +87,7 @@ namespace LanternCardGame.Data.Migrations
                         column: x => x.PlayerStatsId,
                         principalTable: "PlayerStats",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -210,7 +210,9 @@ namespace LanternCardGame.Data.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUsers_PlayerStatsId",
                 table: "AspNetUsers",
-                column: "PlayerStatsId");
+                column: "PlayerStatsId",
+                unique: true,
+                filter: "[PlayerStatsId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "UserNameIndex",

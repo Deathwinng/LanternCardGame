@@ -84,7 +84,9 @@ namespace LanternCardGame.Data.Migrations
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
-                    b.HasIndex("PlayerStatsId");
+                    b.HasIndex("PlayerStatsId")
+                        .IsUnique()
+                        .HasFilter("[PlayerStatsId] IS NOT NULL");
 
                     b.ToTable("AspNetUsers");
                 });
@@ -252,8 +254,9 @@ namespace LanternCardGame.Data.Migrations
             modelBuilder.Entity("LanternCardGame.Data.ApplicationUser", b =>
                 {
                     b.HasOne("LanternCardGame.Data.PlayerStats", "PlayerStats")
-                        .WithMany()
-                        .HasForeignKey("PlayerStatsId");
+                        .WithOne("User")
+                        .HasForeignKey("LanternCardGame.Data.ApplicationUser", "PlayerStatsId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("PlayerStats");
                 });
@@ -307,6 +310,11 @@ namespace LanternCardGame.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("LanternCardGame.Data.PlayerStats", b =>
+                {
+                    b.Navigation("User");
                 });
 #pragma warning restore 612, 618
         }

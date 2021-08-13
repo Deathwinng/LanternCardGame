@@ -12,6 +12,11 @@ namespace LanternCardGame.Data
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
+            builder.Entity<ApplicationUser>()
+            .HasOne(x => x.PlayerStats)
+            .WithOne(x => x.User)
+            .HasForeignKey<ApplicationUser>(x => x.PlayerStatsId)
+            .OnDelete(DeleteBehavior.Cascade);
             base.OnModelCreating(builder);
         }
 

@@ -9,6 +9,7 @@
 
 @inject GameRoomsService roomService
 @inject CurrentUserService userService
+@inject PlayerStatsService statsService
 @inject OnlinePlayersService playersService
 @inject GameService gameService
 @inject NotifyService notifyService
@@ -69,7 +70,7 @@
                 </div>
                 <div class="buttons">
                     <button class="btn btn-success" @onclick="async () => await this.LeaveMidGameTogglePopupAsync()">Stay</button>
-                    <button class="btn btn-outline-danger" @onclick="this.LeaveMidGame">Leave</button>
+                    <button class="btn btn-outline-danger" @onclick="this.LeaveMidGameAsync">Leave</button>
                 </div>
             </div>
         </div>
@@ -364,7 +365,19 @@ else
                         this.roundWon = false;
                         this.gameOver = true;
                         this.roundOverPoints = this.gameService.CalculatePlayerPoints(this.GameId, this.player.Id);
+                        await this.statsService.PlayerFinishedGameAsync(this.player.Id);
+
                         await this.InvokeAsync(this.StateHasChanged);
+                    }));
+
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "PlacedFirst", () =>
+                    {
+                        this.statsService.PlayerPlacedFirs(this.player.Id);
+                    }));
+
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "PlacedLast", () =>
+                    {
+                        this.statsService.PlayerPlacedLast(this.player.Id);
                     }));
 
                     this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "MyTurn", async () =>
@@ -675,9 +688,10 @@ else
         await this.InvokeAsync(this.StateHasChanged);
     }
 
-    private void LeaveMidGame()
+    private async Task LeaveMidGameAsync()
     {
         this.gameService.DropGame(this.GameId);
+        await this.statsService.PlayerLeftGameAsync(this.player.Id);
     }
 
     private void LeaveGame()
@@ -695,7 +709,7 @@ else
             }
             else
             {
-                this.LeaveMidGame();
+                await this.LeaveMidGameAsync();
             }
         }
 
