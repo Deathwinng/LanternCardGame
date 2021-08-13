@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using LanternCardGame.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System;
@@ -18,7 +19,7 @@ namespace LanternCardGame
             this.jwtSettings = jwtSettings.Value;
         }
 
-        public string GetJwtToken(IdentityUser user)
+        public string GetJwtToken(ApplicationUser user)
         {
             return GetJwtToken(user.Email, user.Id);
         }
