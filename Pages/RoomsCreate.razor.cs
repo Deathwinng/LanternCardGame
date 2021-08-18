@@ -5,7 +5,7 @@ namespace LanternCardGame.Pages
 {
     public class NewRoomModel
     {
-        private const int numberOfMinPlayers = 1;
+        private const int numberOfMinPlayers = 2;
 
         public NewRoomModel()
         {
@@ -13,7 +13,7 @@ namespace LanternCardGame.Pages
             this.MaxPoints = 100;
         }
 
-        //[Required(ErrorMessage = "{0} is required.")]
+        [Required(ErrorMessage = "{0} is required.")]
         [StringLength(20, MinimumLength = 3, ErrorMessage = "{0} must be between {2} and {1} characters.")]
         [Display(Name = "Room name")]
         public string Name { get; set; }

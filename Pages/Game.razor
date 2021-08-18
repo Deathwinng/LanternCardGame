@@ -114,88 +114,88 @@
                     message += $"Points reached by {lastPlayer}.";
                 }
 
-                <div id="round-over" class="border rounded shadow">
-                    <div id="message-headline" class="mb-4">
-                        @messageHeadline
-                    </div>
-
-                    <div id="message">
-                        @message
-                    </div>
-
-                    @if (this.gameOver)
-                    {
-                        var playerPoints = this.gameInfo.PlayersPoints.OrderBy(kvp => kvp.Value).ToList();
-                        <table class="table table-borderless mt-3 players">
-                            <tbody>
-                                @for (int i = 0; i < playerPoints.Count; i++)
-                                {
-                                    <tr>
-                                        <td>@(i + 1)</td>
-                                        <td>@(playerPoints[i].Key == this.userService.Username ? "You" : playerPoints[i].Key)</td>
-                                        <td>@playerPoints[i].Value</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    }
-                    else if (this.roundOverShowResults)
-                    {
-                        var roundOverPlayersPointsDifference = this.roundOverPlayersPointsDifference.OrderBy(kvp => kvp.Value).ToList();
-                        <div>Rounds played: @(this.gameInfo.RoundsPlayed + 1)</div>
-                        <table class="table table-borderless mt-3 players">
-                            <tbody>
-                                @for (int i = 0; i < roundOverPlayersPointsDifference.Count; i++)
-                                {
-                                    <tr>
-                                        <td>@(i + 1)</td>
-                                        <td>@(roundOverPlayersPointsDifference[i].Key == this.userService.Username ? "You" : roundOverPlayersPointsDifference[i].Key)</td>
-                                        <td class="font-weight-bold">
-                                            @(roundOverPlayersPointsDifference[i].Value > 0 ? "+" : null)
-                                            @roundOverPlayersPointsDifference[i].Value
-                                        </td>
-                                        <td>> @this.gameInfo.PlayersPoints[roundOverPlayersPointsDifference[i].Key]</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    }
-
-                    @if (this.roundOver && !this.roundOverReady)
-                    {
-                        <button @onclick="this.FinishArraging" class="btn btn-outline-primary">Finish</button>
-                    }
-                    else if (this.roundOverShowResults)
-                    {
-
-                        <button class="btn btn-primary" disabled>
-                            Next round starts in
-                            <span class="font-weight-bold">@this.nextRoundCounter</span>
-                        </button>
-                    }
-                    else if (!this.gameOver)
-                    {
-                        <button class="btn btn-success" disabled>
-                            Waiting for others.
-                            <span class="spinner-border spinner-border-sm"></span>
-                        </button>
-                    }
-                    else if (this.gameOver)
-                    {
-                        <div id="game-over-buttons">
-                            <button class="btn btn-success"
-                                    disabled="@(!this.replayButtonActive)"
-                                    @onclick="this.Replay">
-                                @this.numberOfReplayReadyPlayers / @this.gameInfo.PlayersCardsNumber.Count Play again?
-                            </button>
-
-                            <button class="btn btn-danger"
-                                    @onclick='() => this.navigationManager.NavigateTo("/")'>
-                                Leave
-                            </button>
-                        </div>
-                    }
+            <div id="round-over" class="border rounded shadow">
+                <div id="message-headline" class="mb-4">
+                    @messageHeadline
                 </div>
+
+                <div id="message">
+                    @message
+                </div>
+
+                @if (this.gameOver)
+                {
+                    var playerPoints = this.gameInfo.PlayersPoints.OrderBy(kvp => kvp.Value).ToList();
+                    <div>Rounds played: @(this.gameInfo.RoundsPlayed + 1)</div>
+                    <table class="table table-borderless mt-3 players">
+                        <tbody>
+                            @for (int i = 0; i < playerPoints.Count; i++)
+                            {
+                                <tr>
+                                    <td>@(i + 1)</td>
+                                    <td>@(playerPoints[i].Key == this.userService.Username ? "You" : playerPoints[i].Key)</td>
+                                    <td>@playerPoints[i].Value</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else if (this.roundOverShowResults)
+                {
+                    var roundOverPlayersPointsDifference = this.roundOverPlayersPointsDifference.OrderBy(kvp => kvp.Value).ToList();
+                    <table class="table table-borderless mt-3 players">
+                        <tbody>
+                            @for (int i = 0; i < roundOverPlayersPointsDifference.Count; i++)
+                            {
+                                <tr>
+                                    <td>@(i + 1)</td>
+                                    <td>@(roundOverPlayersPointsDifference[i].Key == this.userService.Username ? "You" : roundOverPlayersPointsDifference[i].Key)</td>
+                                    <td class="font-weight-bold">
+                                        @(roundOverPlayersPointsDifference[i].Value > 0 ? "+" : null)
+                                        @roundOverPlayersPointsDifference[i].Value
+                                    </td>
+                                    <td>> @this.gameInfo.PlayersPoints[roundOverPlayersPointsDifference[i].Key]</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+
+                @if (this.roundOver && !this.roundOverReady)
+                {
+                    <button @onclick="this.FinishArraging" class="btn btn-outline-primary">Finish</button>
+                }
+                else if (this.roundOverShowResults)
+                {
+
+                    <button class="btn btn-primary" disabled>
+                        Next round starts in
+                        <span class="font-weight-bold">@this.nextRoundCounter</span>
+                    </button>
+                }
+                else if (!this.gameOver)
+                {
+                    <button class="btn btn-success" disabled>
+                        Waiting for others.
+                        <span class="spinner-border spinner-border-sm"></span>
+                    </button>
+                }
+                else if (this.gameOver)
+                {
+                    <div id="game-over-buttons">
+                        <button class="btn btn-success"
+                                disabled="@(!this.replayButtonActive)"
+                                @onclick="this.Replay">
+                            @this.numberOfReplayReadyPlayers / @this.gameInfo.PlayersCardsNumber.Count Play again?
+                        </button>
+
+                        <button class="btn btn-danger"
+                                @onclick='() => this.navigationManager.NavigateTo("/")'>
+                            Leave
+                        </button>
+                    </div>
+                }
+            </div>
             }
             else
             {
