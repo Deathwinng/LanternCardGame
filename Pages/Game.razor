@@ -3,6 +3,7 @@
 @inject IJSRuntime JS
 @attribute [Authorize]
 
+@using System.Timers
 @using LanternCardGame.Game
 @using LanternCardGame.Game.Cards
 @using LanternCardGame.Pages.Components
@@ -63,7 +64,7 @@
     }
     else
     {
-        <div id="leave-game-bg" class="@(this.leavingGamePopup ? "show" : "hide")">
+        <div id="leave-game-overlay" class="@(this.leavingGamePopup ? "show" : "hide")">
             <div id="leave-game-ui" class="rounded">
                 <div class="text mb-3">
                     Game will be ended. Are you sure?
@@ -82,8 +83,16 @@
                 var message = string.Empty;
                 @if (this.roundWon)
                 {
-                    messageHeadline = "Congratulations! You won this round!";
+                    messageHeadline = "Congratulations! You lit up!";
                     message = "10 points substracted from your score. Waiting for other players to arrange their cards.";
+                }
+                else if (this.roundOverShowResults)
+                {
+                    messageHeadline = "Round results:";
+                    if (!string.IsNullOrEmpty(this.roundWinner))
+                    {
+                        message += $"{this.roundWinner} lit up! ";
+                    }
                 }
                 else if (this.roundOver)
                 {
@@ -96,11 +105,13 @@
                         messageHeadline = $"{this.roundWinner} lit up!";
                     }
 
-                    message += $" Arrange your cards for points counting. Adding {this.roundOverPoints} points to your score.";
+                    message += $" Arrange your cards for points counting. Will add {this.roundOverPoints} points to your score.";
                 }
                 else if (this.gameOver)
                 {
                     messageHeadline = "Game over!";
+                    var lastPlayer = this.gameInfo.PlayersPoints.OrderByDescending(kvp => kvp.Value).First().Key;
+                    message += $"Points reached by {lastPlayer}.";
                 }
 
                 <div id="round-over" class="border rounded shadow">
@@ -115,17 +126,52 @@
                     @if (this.gameOver)
                     {
                         var playerPoints = this.gameInfo.PlayersPoints.OrderBy(kvp => kvp.Value).ToList();
-                        <ul class="list-unstyled mt-3 players-list">
-                            @for (int i = 0; i < playerPoints.Count; i++)
-                            {
-                                <li>@(i + 1): @(playerPoints[i].Key == this.userService.Username ? "You" : playerPoints[i].Key) - @playerPoints[i].Value poins</li>
-                            }
-                        </ul>
+                        <table class="table table-borderless mt-3 players">
+                            <tbody>
+                                @for (int i = 0; i < playerPoints.Count; i++)
+                                {
+                                    <tr>
+                                        <td>@(i + 1)</td>
+                                        <td>@(playerPoints[i].Key == this.userService.Username ? "You" : playerPoints[i].Key)</td>
+                                        <td>@playerPoints[i].Value</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else if (this.roundOverShowResults)
+                    {
+                        var roundOverPlayersPointsDifference = this.roundOverPlayersPointsDifference.OrderBy(kvp => kvp.Value).ToList();
+                        <div>Rounds played: @(this.gameInfo.RoundsPlayed + 1)</div>
+                        <table class="table table-borderless mt-3 players">
+                            <tbody>
+                                @for (int i = 0; i < roundOverPlayersPointsDifference.Count; i++)
+                                {
+                                    <tr>
+                                        <td>@(i + 1)</td>
+                                        <td>@(roundOverPlayersPointsDifference[i].Key == this.userService.Username ? "You" : roundOverPlayersPointsDifference[i].Key)</td>
+                                        <td class="font-weight-bold">
+                                            @(roundOverPlayersPointsDifference[i].Value > 0 ? "+" : null)
+                                            @roundOverPlayersPointsDifference[i].Value
+                                        </td>
+                                        <td>> @this.gameInfo.PlayersPoints[roundOverPlayersPointsDifference[i].Key]</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     }
 
                     @if (this.roundOver && !this.roundOverReady)
                     {
                         <button @onclick="this.FinishArraging" class="btn btn-outline-primary">Finish</button>
+                    }
+                    else if (this.roundOverShowResults)
+                    {
+
+                        <button class="btn btn-primary" disabled>
+                            Next round starts in
+                            <span class="font-weight-bold">@this.nextRoundCounter</span>
+                        </button>
                     }
                     else if (!this.gameOver)
                     {
@@ -165,7 +211,7 @@
                                     }}
                             </div>
                             <div class="oposing-player-name
-                            @(this.gameInfo.CurrentTurnPlayerUsername == kvp.Key ? "highlighted" : "")">
+                            @(this.gameInfo.CurrentTurnPlayerUsername == kvp.Key ? "highlighted" : null)">
                                 @kvp.Key
                             </div>
                         </div>
@@ -181,14 +227,20 @@
                             <table id="points-table" class="mb-3">
                                 <thead>
                                     <tr>
-                                        <th>Points</th>
+                                        <th colspan="3">Points</th>
                                     </tr>
                                 </thead>
                                 @foreach (var kvp in this.gameInfo.PlayersPoints)
                                 {
                                     <tr>
-                                        <td>@(kvp.Key == this.userService?.Username ? "You" : kvp.Key): </td>
-                                        <td> @kvp.Value / @this.room?.MaxPoints</td>
+                                        <td>
+                                            @if (this.gameInfo.CurrentTurnPlayerUsername == kvp.Key)
+                                            {
+                                                <span class="oi oi-caret-right text-success"></span>
+                                            }
+                                        </td>
+                                        <td class="px-2">@(kvp.Key == this.userService?.Username ? "You" : kvp.Key): </td>
+                                        <td>@kvp.Value / @this.room?.MaxPoints</td>
                                     </tr>
                                 }
                             </table>
@@ -286,11 +338,15 @@ else
     private bool playersReady = false;
     private bool gameDropped = false;
     private ICollection<string[]> subscriptionsInfo = new HashSet<string[]>();
+    private IDictionary<string, int> roundOverPlayersPointsDifference = new Dictionary<string, int>();
     private PlayerTurnAllowedMoves allowedMoves = new PlayerTurnAllowedMoves();
     private GameInfo gameInfo = new GameInfo();
+    private Timer roundSatartsTimer = new Timer(1 * 1000);
+    private int nextRoundCounter = 10;
     private bool myTurn = false;
     private bool roundWon = false;
     private bool roundOver = false;
+    private bool roundOverShowResults = false;
     private string roundWinner = null;
     private bool gameOver = false;
     private bool roundOverReady = false;
@@ -309,6 +365,17 @@ else
     {
         this.room = this.roomService.GetRoom(GameId);
         this.player = this.playersService.GetPlayerById(this.userService.UserId);
+        this.roundSatartsTimer.AutoReset = true;
+        this.roundSatartsTimer.Elapsed += async (source, e) =>
+        {
+            this.nextRoundCounter--;
+            if (this.nextRoundCounter <= 0)
+            {
+                this.roundSatartsTimer.Stop();
+            }
+
+            await this.InvokeAsync(this.StateHasChanged);
+        };
 
         base.OnInitialized();
     }
@@ -357,11 +424,22 @@ else
                         await this.InvokeAsync(this.StateHasChanged);
                     }));
 
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "RoundResults", async () =>
+                    {
+                        this.roundOverShowResults = true;
+                        this.gameInfo = this.gameService.GetGameInfo(GameId);
+                        this.roundOverPlayersPointsDifference = this.gameService.GetLastRoundPlayerPoints(GameId);
+                        this.nextRoundCounter = 10;
+                        this.roundSatartsTimer.Start();
+                        await this.InvokeAsync(this.StateHasChanged);
+                    }));
+
                     this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "GameOver", async () =>
                     {
                         this.myTurn = false;
                         this.roundOver = false;
                         this.roundOverReady = false;
+                        this.roundOverShowResults = false;
                         this.roundWon = false;
                         this.gameOver = true;
                         this.roundOverPoints = this.gameService.CalculatePlayerPoints(this.GameId, this.player.Id);
@@ -393,6 +471,7 @@ else
                     {
                         this.roundOver = false;
                         this.roundOverReady = false;
+                        this.roundOverShowResults = false;
                         this.roundWon = false;
                         this.gameOver = false;
                         this.replayButtonActive = true;
@@ -511,8 +590,7 @@ else
         }
         else if (pairCardsNumber == 10)
         {
-            var biggestPairGroup = new List<Card>
-    ();
+            var biggestPairGroup = new List<Card>();
             var biggestPair = 0;
             foreach (var group in this.pairCardsGroups)
             {
@@ -536,10 +614,10 @@ else
 
             if (biggestPairGroup[1].CardType == CardType.Joker)
             {
-                return new int[] { biggestPairGroup[biggestPairGroup.Count - 1].Id };
+                return new int[] { biggestPairGroup[^1].Id };
             }
 
-            return new int[] { biggestPairGroup[0].Id, biggestPairGroup[biggestPairGroup.Count - 1].Id };
+            return new int[] { biggestPairGroup[0].Id, biggestPairGroup[^1].Id };
         }
 
         return new int[0];
@@ -690,7 +768,7 @@ else
 
     private async Task LeaveMidGameAsync()
     {
-        this.gameService.DropGame(this.GameId);
+        this.gameService.DropGame(this.GameId, this.player.Username);
         await this.statsService.PlayerLeftGameAsync(this.player.Id);
     }
 

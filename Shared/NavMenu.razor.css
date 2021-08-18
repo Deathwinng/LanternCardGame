@@ -85,6 +85,10 @@
             background: gray;
         }
 
+    .online-players .player-info {
+        margin-left: 5px;
+    }
+
 @media (min-width: 1100px) {
     .navbar-toggler {
         display: none;
@@ -98,5 +102,12 @@
     .online-players {
         position: absolute;
         width: 100%;
+    }
+        .online-players .player-info {
+            display: none;
+        }
+
+    .online-player:hover .player-info {
+        display: inline;
     }
 }

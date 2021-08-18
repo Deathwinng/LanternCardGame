@@ -4,6 +4,7 @@ using LanternCardGame.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Timers;
 
 namespace LanternCardGame.Services
 {
@@ -12,17 +13,20 @@ namespace LanternCardGame.Services
         private readonly ICollection<GameInstance> gameInstances;
         private readonly GameRoomsService roomService;
         private readonly OnlinePlayersService playersService;
+        private readonly NotificationService notificationService;
         private readonly NotifyService notifyService;
         private readonly object balanceLock = new object();
 
         public GameService(
             GameRoomsService roomService,
             OnlinePlayersService playersService,
+            NotificationService notificationService,
             NotifyService subscriptionService)
         {
             this.gameInstances = new HashSet<GameInstance>();
             this.roomService = roomService;
             this.playersService = playersService;
+            this.notificationService = notificationService;
             this.notifyService = subscriptionService;
         }
 
@@ -74,7 +78,7 @@ namespace LanternCardGame.Services
                     var currentPlayerId = gameInstance.CurrentTurnPlayerId;
                     var currentPlayerInstanceId = this.playersService.GetPlayerById(currentPlayerId).InstanceId;
                     this.notifyService.InvokeByGroup(gameId, "AllPlayersReady");
-                    notifyService.InvokeByPlayer(currentPlayerInstanceId, "MyTurn");
+                    this.notifyService.InvokeByPlayer(currentPlayerInstanceId, "MyTurn");
                     gameInstance.ResetPlayersReady();
                 }
             }
@@ -90,28 +94,33 @@ namespace LanternCardGame.Services
                 gameInstance.AddToPlayerPoints(playerId, this.CalculatePlayerPoints(gameId, playerId));
                 if (gameInstance.AllPlayersReady)
                 {
-                    if (gameInstance.IsMaxPointsReached)
+                    if (gameInstance.AreMaxPointsReached)
                     {
                         gameInstance.ResetPlayersReady();
                         this.UpdateGameInfo(gameId);
-                        var playerPoints = gameInstance.GetAllPlayerPoints();
-                        var firstPlayer = playerPoints.Aggregate((x, y) => x.Value < y.Value ? x : y).Key;
-                        var lastPlayer = playerPoints.Aggregate((x, y) => x.Value > y.Value ? x : y).Key;
-                        this.notifyService.InvokeByPlayer(this.playersService.GetPlayerById(firstPlayer).InstanceId, "PlacedFirst");
-                        this.notifyService.InvokeByPlayer(this.playersService.GetPlayerById(lastPlayer).InstanceId, "PlacedLast");
+                        var playerPoints = gameInstance.GetAllPlayerPoints().OrderBy(kvp => kvp.Value);
+                        var firstPlayerInstanceId = this.playersService.GetPlayerById(playerPoints.First().Key).InstanceId;
+                        var lastPlayerInstanceId = this.playersService.GetPlayerById(playerPoints.Last().Key).InstanceId;
+                        this.notifyService.InvokeByPlayer(firstPlayerInstanceId, "PlacedFirst");
+                        this.notifyService.InvokeByPlayer(lastPlayerInstanceId, "PlacedLast");
                         this.notifyService.InvokeByGroup(gameId, "GameOver");
                         this.notifyService.InvokeByGroup(gameId, "NumberOfReplayReadyPlayers");
 
                         return;
                     }
 
-                    gameInstance.StartNewRound();
-                    this.notifyService.InvokeByGroup(gameId, "NewRoundStarting");
-                    var currentPlayerId = gameInstance.CurrentTurnPlayerId;
-                    var allowedMoves = new PlayerTurnAllowedMoves(true, true, false, false);
-                    gameInstance.SetCurrentPlayerAlowedMoves(allowedMoves);
-                    var playerInstanceId = playersService.GetPlayerById(currentPlayerId).InstanceId;
-                    this.notifyService.InvokeByPlayer(playerInstanceId, "MyTurn");
+                    this.notifyService.InvokeByGroup(gameId, "RoundResults");
+
+                    var timer = new Timer(10 * 1000)
+                    {
+                        AutoReset = false
+                    };
+                    timer.Elapsed += (source, e) =>
+                    {
+                        this.StartNewRound(gameId);
+                        timer.Dispose();
+                    };
+                    timer.Start();
                 }
             }
         }
@@ -133,7 +142,7 @@ namespace LanternCardGame.Services
                     var currentPlayerId = gameInstance.CurrentTurnPlayerId;
                     var currentPlayerInstanceId = this.playersService.GetPlayerById(currentPlayerId).InstanceId;
                     this.notifyService.InvokeByGroup(gameId, "NewRoundStarting");
-                    notifyService.InvokeByPlayer(currentPlayerInstanceId, "MyTurn");
+                    this.notifyService.InvokeByPlayer(currentPlayerInstanceId, "MyTurn");
                     this.UpdateGameInfo(gameId);
                 }
             }
@@ -143,8 +152,8 @@ namespace LanternCardGame.Services
         {
             this.DoesGameInstanceExists(gameId);
             var gameInstance = this.GetGameInstance(gameId);
-            var playerCardsNumbers = new Dictionary<string, int>();
-            var playersPoints = new Dictionary<string, int>();
+            var playerCardsNumbers = new Dictionary<string, int>(gameInstance.Players.Count);
+            var playersPoints = new Dictionary<string, int>(gameInstance.Players.Count);
             foreach (var player in gameInstance.Players)
             {
                 playerCardsNumbers.Add(player.Username, gameInstance.GetNumberOfPlayerCards(player.Id));
@@ -160,6 +169,20 @@ namespace LanternCardGame.Services
                     gameInstance.PeekEmptyDeckNextCard(),
                     gameInstance.RoundsPlayed,
                     gameInstance.RotationsPerRoundsPlayed);
+        }
+
+        public IDictionary<string, int> GetLastRoundPlayerPoints(string gameId)
+        {
+            this.DoesGameInstanceExists(gameId);
+            var gameInstance = this.GetGameInstance(gameId);
+            var playerLastRoundPoints = gameInstance.GetAllPlayerLastRoundPoints();
+            var playersPoints = new Dictionary<string, int>(gameInstance.Players.Count);
+            foreach (var player in gameInstance.Players)
+            {
+                playersPoints.Add(player.Username, playerLastRoundPoints[player.Id]);
+            }
+
+            return playersPoints;
         }
 
         public int GetNumberOfPlayersReady(string gameId)
@@ -342,13 +365,13 @@ namespace LanternCardGame.Services
             }
         }
 
-        public void DropGame(string gameId)
+        public void DropGame(string gameId, string playerName)
         {
             lock (this.balanceLock)
             {
                 this.DoesGameInstanceExists(gameId);
                 this.notifyService.InvokeByGroup(gameId, "GameDropped");
-                this.roomService.DeleteRoom(gameId);
+                this.roomService.DeleteRoom(gameId, playerName);
                 var gameInstance = this.GetGameInstance(gameId);
                 this.gameInstances.Remove(gameInstance);
             }
@@ -438,7 +461,12 @@ namespace LanternCardGame.Services
                 var counter = 0;
                 for (int k = 0; k < group2.Count; k++)
                 {
-                    if (cards[i].CardType == CardType.Joker && group2[group2.Count - 1].CardType != CardType.King)
+                    if (cards[i].CardType == CardType.Joker && group2[^1].CardType == CardType.King ||
+                        cards[i].CardType == CardType.Ace && group2[^1].CardType == CardType.Joker)
+                    {
+                        break;
+                    }
+                    if (cards[i].CardType == CardType.Joker)
                     {
                         group2.Add(cards[i]);
                         counter++;
@@ -514,6 +542,25 @@ namespace LanternCardGame.Services
             }
 
             return numOfPairedCards >= 9;
+        }
+
+        private void StartNewRound(string gameId)
+        {
+            this.DoesGameInstanceExists(gameId);
+            var gameInstance = this.GetGameInstance(gameId);
+            gameInstance.StartNewRound();
+            this.notifyService.InvokeByGroup(gameId, "NewRoundStarting");
+            foreach (var player in gameInstance.Players)
+            {
+                this.notificationService.AddPlayerNotification(player.InstanceId, "New round starting!", 5);
+            }
+
+            this.notifyService.InvokeByGroup(gameId, "ReceiveNotification");
+            var currentPlayerId = gameInstance.CurrentTurnPlayerId;
+            var allowedMoves = new PlayerTurnAllowedMoves(true, true, false, false);
+            gameInstance.SetCurrentPlayerAlowedMoves(allowedMoves);
+            var playerInstanceId = playersService.GetPlayerById(currentPlayerId).InstanceId;
+            this.notifyService.InvokeByPlayer(playerInstanceId, "MyTurn");
         }
 
         private GameInstance CreateNewGameInstance(string gameId)

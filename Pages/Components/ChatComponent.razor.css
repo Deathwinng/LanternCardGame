@@ -7,6 +7,11 @@ td {
     padding-right: 10px;
 }
 
+    .no-messages,
+    td:first-child {
+        color: #9d9d9d;
+    }
+
 .chat-box ::deep input {
     border: 1px #80808066 solid;
 }

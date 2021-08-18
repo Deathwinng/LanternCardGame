@@ -88,12 +88,12 @@
 
             this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "DuplicateUser", this.DuplicateUser));
 
-            this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "DuplicateUserCleared", async () =>
+            this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "DuplicateUserCleared", () =>
             {
                 this.duplicatePlayer = false;
                 this.notificationService.RemovePlayerNotification(this.duplicatePlayerNotificationId);
                 this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
-                await InvokeAsync(this.StateHasChanged);
+                this.NavigationManager.NavigateTo("/", true);
             }));
 
             this.onlinePlayers = this.playersService.GetPlayersOnline().ToHashSet();

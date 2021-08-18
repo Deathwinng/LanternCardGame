@@ -1,6 +1,7 @@
 ﻿@page "/rooms/{RoomId}"
 
 @using LanternCardGame.Pages.Components
+@using Microsoft.AspNetCore.Components.Web.Extensions.Head
 
 @implements IDisposable
 @attribute [Authorize]
@@ -13,6 +14,8 @@
 
 @if (this.room != null)
 {
+    <Title Value="@($"Room {this.room.Name}")"></Title>
+
     <h3>Room @this.room?.Name</h3>
     <p>@this.room?.PlayerCount / @this.room?.MaxPlayers</p>
 
@@ -32,14 +35,28 @@
         }
         else
         {
-            <button class="btn btn-outline-warning" @onclick=" () => this.LeaveRoom()">Leave Room</button>
+            if (this.roomsService.IsPlayerInTheRoom(this.userService.InstanceId, this.RoomId))
+            {
+                <button class="btn btn-outline-warning" @onclick="() => this.LeaveRoom()">Leave Room</button>
+            }
+            else
+            {
+                <button disabled=@(this.room.PlayerCount < this.room.MaxPlayers ? false : true)
+                        class="btn btn-outline-success"
+                        @onclick=" () => this.JoinRoom()">
+                    Join Room
+                </button>
+            }
         }
     </div>
-
     <br />
-    <div id="chat">
-        <ChatComponent RoomId="@this.RoomId" />
-    </div>
+    
+    if (this.roomsService.IsPlayerInTheRoom(this.userService.InstanceId, this.RoomId))
+    {
+        <div id="chat">
+            <ChatComponent RoomId="@this.RoomId" />
+        </div>
+    }
 }
 
 @code {
@@ -53,8 +70,7 @@
     protected override void OnInitialized()
     {
         this.room = this.roomsService.GetRoom(this.RoomId);
-        if (this.room == null ||
-            (this.room != null && (this.room.InGame || !this.roomsService.IsPlayerInTheRoom(this.userService.InstanceId, this.RoomId))))
+        if (this.room == null || (this.room != null && this.room.InGame))
         {
             this.navManager.NavigateTo("/rooms", true);
         }
@@ -68,6 +84,11 @@
         {
             base.OnAfterRender(firstRender);
             return;
+        }
+
+        if (!this.roomsService.IsPlayerInTheRoom(this.userService.InstanceId, this.RoomId))
+        {
+            this.notifyService.AddToGroup(this.userService.InstanceId, this.RoomId);
         }
 
         this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.userService.InstanceId, "RefreshRoom", async () => await RefreshRoom()));
@@ -85,6 +106,12 @@
     {
         this.roomsService.StartGame(this.RoomId);
         this.gameService.StartGame(this.RoomId);
+    }
+
+    public void JoinRoom()
+    {
+        this.roomsService.AddPlayerToRoom(this.userService.UserId, this.RoomId);
+        this.StateHasChanged();
     }
 
     public void DeleteRoom(bool navigate = true)
@@ -123,6 +150,10 @@
         if (room != null && !this.room.InGame)
         {
 
+            if (!this.roomsService.IsPlayerInTheRoom(this.userService.InstanceId, this.RoomId))
+            {
+                this.notifyService.RemoveFromGroup(this.userService.InstanceId, this.RoomId);
+            }
             if (this.userService.UserId == this.room.OwnerId)
             {
                 this.DeleteRoom(false);

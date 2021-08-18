@@ -1,0 +1,67 @@
+﻿@page "/user/{Username}"
+
+@using Microsoft.AspNetCore.Components.Web.Extensions.Head
+
+@inject PlayerStatsService statsService
+@inject CurrentUserService currentUserService
+@inject NavigationManager navigationManager
+
+@if (this.playerExists)
+{
+    <Title Value="@($"{this.Username} info")"></Title>
+
+    var placedFirstPercentage = (((double)this.playerStats.GamesWon / this.playerStats.GamesFinished) * 100.0).ToString("F2");
+    var placedLastPercentage = (((double)this.playerStats.GamesPlacedLast / this.playerStats.GamesFinished) * 100.0).ToString("F2");
+    <div id="top" class="d-flex justify-content-between mb-3">
+        <h2>@this.Username info</h2>
+        @if (this.currentUserService.Username.ToLower() == this.Username.ToLower())
+        {
+            <button class="btn btn-outline-primary"
+                    @onclick='() => this.navigationManager.NavigateTo("/Identity/Account/Manage", true)'>
+                <span class="oi oi-wrench"></span>
+                Profile settings
+            </button>
+        }
+    </div>
+
+
+    <ul class="list-group">
+        <li class="list-group-item">Joined: @this.playerStats.RegistrationDate.ToLocalTime().ToShortDateString()</li>
+        <li class="list-group-item">Games finished: @this.playerStats.GamesFinished</li>
+        <li class="list-group-item">Games left: @this.playerStats.GamesLeft</li>
+        <li class="list-group-item">Games placed first: @this.playerStats.GamesWon @(this.playerStats.GamesWon > 0 ?$"({placedFirstPercentage}%)" : null)</li>
+        <li class="list-group-item">Games placed last: @this.playerStats.GamesPlacedLast @(this.playerStats.GamesPlacedLast > 0 ?$"({placedLastPercentage}%)" : null)</li>
+    </ul>
+}
+else
+{
+    <h3 class="text-danger">Player doesn't exist!</h3>
+}
+
+@code {
+    [Parameter]
+    public string Username { get; set; }
+
+    private bool playerExists = true;
+    private Data.PlayerStats playerStats;
+
+    protected override void OnParametersSet()
+    {
+        this.UpdatePlayerStats();
+        base.OnParametersSet();
+    }
+
+    protected override void OnInitialized()
+    {
+        this.UpdatePlayerStats();
+        base.OnInitialized();
+    }
+
+    private void UpdatePlayerStats()
+    {
+        this.playerStats = this.statsService.GetPlayerStatsByUsername(this.Username);
+        this.playerExists = this.playerStats != null;
+
+        this.StateHasChanged();
+    }
+}

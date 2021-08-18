@@ -1,7 +1,9 @@
 ﻿@page "/rooms"
 
 @using Shared.Enums
+@using Microsoft.AspNetCore.Components.Web.Extensions.Head
 @implements IDisposable
+
 
 @attribute [Authorize]
 @inject GameRoomsService roomService
@@ -10,40 +12,50 @@
 @inject NotifyService notifyService
 @inject NavigationManager navManager
 
-<div style="display: flex; justify-content: space-between;">
-    <h1>Rooms</h1>
-    @{ var nav = "/newRoom"; }
-    <button class="btn btn-outline-success mb-2" @onclick="() => this.navManager.NavigateTo(nav)"><span class="oi oi-plus"></span> Create</button>
+<Title Value="Browse rooms"></Title>
+
+<div class="d-flex justify-content-between mb-3">
+    <h2>Rooms</h2>
+    @{ var nav = "/rooms/create"; }
+    <button class="btn btn-outline-success" @onclick="() => this.navManager.NavigateTo(nav)">
+        <span class="oi oi-plus"></span> Create
+    </button>
 </div>
 
-@if (rooms.Count == 0)
-{
-    <div>No rooms</div>
-}
-else
-{
-    <table class="table">
-        <thead class="thead-light">
-            <tr>
-                <th>Name</th>
-                <th>Players</th>
-                <th>Max Points</th>
-                <th></th>
+<table class="table">
+    <thead class="thead-light">
+        <tr>
+            <th>Name</th>
+            <th>Players</th>
+            <th>Max Points</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (rooms.Count == 0)
+        {
+            <tr class="d-md-table-row">
+                <td>
+                    No rooms
+                </td>
             </tr>
-        </thead>
-        <tbody>
-            @foreach (var room in rooms)
+        }
+        else
+        {
+            foreach (var room in rooms)
             {
                 <tr class="d-md-table-row">
                     <td>@(string.IsNullOrWhiteSpace(room.Name) ? "(No name)" : room.Name)</td>
                     <td>@room.PlayerCount / @room.MaxPlayers </td>
                     <td>@room.MaxPoints </td>
-                    <td><button class="btn btn-primary" disabled="@(room.PlayerCount == room.MaxPlayers)" @onclick="() => JoinRoom(room.Id)">Join</button></td>
+                    <td>
+                        <button class="btn btn-primary w-100" disabled="@(room.PlayerCount == room.MaxPlayers)" @onclick="() => JoinRoom(room.Id)">Join</button>
+                    </td>
                 </tr>
             }
-        </tbody>
-    </table>
-}
+        }
+    </tbody>
+</table>
 
 @code {
     //[CascadingParameter]

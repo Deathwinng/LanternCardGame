@@ -34,7 +34,7 @@
                         else if (this.Player.PlayerStatus == PlayerStatus.Free)
                         {
                             <li class="nav-item px-3">
-                                <NavLink class="nav-link" href="newRoom">
+                                <NavLink class="nav-link" href="rooms/create">
                                     <span class="oi oi-plus" aria-hidden="true"></span> Create New Room
                                 </NavLink>
                             </li>
@@ -45,7 +45,7 @@
                             </li>
 
                             <li class="nav-item px-3 mt-4">
-                                <NavLink class="nav-link" href=@($"/player/{context.User.Identity.Name}")>
+                                <NavLink class="nav-link" href=@($"/user/{context.User.Identity.Name}")>
                                     <span class="oi oi-person" aria-hidden="true"></span> @context.User.Identity.Name
                                 </NavLink>
                             </li>
@@ -99,9 +99,12 @@
                         //PlayerStatus.Inactive => "Player may be disconnected.",
                         _ => "Player is free."
                     };
-                    <li title=@status>
-                        <span class="player-status @(player.PlayerStatus.ToString().ToLower())"></span>
-                        @player.Username
+                    <li class="online-player" title=@status>
+                            <span class="player-status @(player.PlayerStatus.ToString().ToLower())"></span>
+                            @player.Username
+                            <a class="player-info" href=@($"/user/{player.Username}") title="Go to user info.">
+                                <span class="oi oi-info"></span>
+                            </a>
                     </li>
                 }
             </ul>

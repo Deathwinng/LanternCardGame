@@ -88,7 +88,7 @@ namespace LanternCardGame.Services
             return room.Id;
         }
 
-        public void DeleteRoom(string roomId)
+        public void DeleteRoom(string roomId, string playerName = null)
         {
             DoesRoomExist(roomId);
             var room = GetRoom(roomId);
@@ -100,9 +100,12 @@ namespace LanternCardGame.Services
                     this.notificationService.AddPlayerNotification(player.InstanceId, "Room deleted!", 3, NotificationType.Warning);
                     this.notifyService.InvokeByPlayer(player.InstanceId, "ReceiveNotification");
                 }
-                else if (room.InGame)
+                else if (room.InGame && player.Username != playerName)
                 {
-                    this.notificationService.AddPlayerNotification(player.InstanceId, "Game terminated. A player left the game!", 5, NotificationType.Danger);
+                    this.notificationService.AddPlayerNotification(player.InstanceId,
+                        $"Game terminated. {(string.IsNullOrEmpty(playerName) ? "A player" : playerName)} left the game!",
+                        5,
+                        NotificationType.Danger);
                     this.notifyService.InvokeByPlayer(player.InstanceId, "ReceiveNotification");
                 }
 
@@ -138,7 +141,7 @@ namespace LanternCardGame.Services
 
                     this.notificationService.AddPlayerNotification(
                         playerModel.InstanceId,
-                        $"Player \"{player.Username}\" joined.",
+                        $"\"{player.Username}\" joined.",
                         3);
                 }
 
@@ -177,7 +180,7 @@ namespace LanternCardGame.Services
 
                         this.notificationService.AddPlayerNotification(
                             playerModel.InstanceId,
-                            $"Player \"{player.Username}\" left.",
+                            $"\"{player.Username}\" left.",
                             3);
                     }
 

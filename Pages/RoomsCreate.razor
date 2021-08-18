@@ -1,11 +1,15 @@
-﻿@page "/newRoom"
+﻿@page "/rooms/create"
+
+@using Microsoft.AspNetCore.Components.Web.Extensions.Head
 
 @attribute [Authorize]
 @inject GameRoomsService roomsService
 @inject CurrentUserService userService
 @inject NavigationManager navManager
 
-<h1>Create new room</h1>
+<Title Value="Create new room"></Title>
+
+<h2 class="mb-3">Create new room</h2>
 
 <EditForm Model="@this.model" OnValidSubmit="HandleCreateNewRoom">
     <DataAnnotationsValidator />
@@ -14,7 +18,7 @@
         <div class="input-group-prepend">
             <span class="input-group-text">Room name:</span>
         </div>
-        <InputText @bind-Value="@this.model.Name" class="form-control" />
+        <InputText @bind-Value="@this.model.Name" placeholder="Between 3 and 20 characters." class="form-control" />
     </div>
     <div class="input-group mb-2">
         <div class="input-group-prepend">
@@ -28,16 +32,6 @@
         </div>
         <InputNumber @bind-Value="@this.model.MaxPoints" class="form-control" min="20" max="1000" />
     </div>
-
-    @if (this.userService.UserEmail == "metin.94.1@gmail.com")
-    {
-        <div class="input-group mb-2">
-            <div class="input-group-prepend">
-                <span class="input-group-text">Start the game in developer mode:</span>
-            </div>
-            <InputCheckbox @bind-Value="@this.model.DeveloperMode" class="form-control" />
-        </div>
-    }
 
     <button class="btn btn-outline-primary">Create new room</button>
 </EditForm>

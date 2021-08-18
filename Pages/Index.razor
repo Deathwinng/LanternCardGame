@@ -1,16 +1,19 @@
 ﻿@page "/"
 
 @using Shared.Enums
+@using Microsoft.AspNetCore.Components.Web.Extensions.Head
 
 @inject OnlinePlayersService playerService
 @inject CurrentUserService userService
+
+<Title Value="Lantern Card Game"></Title>
 
 <AuthorizeView>
     <Authorized>
         @if (this.player?.PlayerStatus != PlayerStatus.Duplicate)
         {
-            <h1>Welcome!</h1>
-            <h3><a href="/newRoom">Create new room</a> or <a href="/rooms">browse rooms</a> to start playing.</h3>
+            <h1 class="mb-3">Welcome to Lantern Card Game!</h1>
+            <h3><a href="/rooms/create">Create new room</a> or <a href="/rooms">browse rooms</a> to start playing.</h3>
         }
         else
         {

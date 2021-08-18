@@ -18,6 +18,7 @@ namespace LanternCardGame.Game
         private int rotationsPerRoundsPlayed;
         private readonly IDictionary<string, PlayerDeck> playersDecks;
         private readonly IDictionary<string, int> playersPoints;
+        private readonly IDictionary<string, int> playersLastRoundPoints;
         private readonly IDictionary<string, bool> playersReady;
         private Deck deck;
         private EmptyDeck emptyDeck;
@@ -37,8 +38,10 @@ namespace LanternCardGame.Game
             this.rotationsPerRoundsPlayed = 0;
             this.playersDecks = new Dictionary<string, PlayerDeck>(this.players.Count);
             this.playersPoints = new Dictionary<string, int>(this.players.Count);
+            this.playersLastRoundPoints = new Dictionary<string, int>(this.players.Count);
             this.playersReady = new Dictionary<string, bool>(this.players.Count);
             this.roundsPlayed = 0;
+            this.rotationsPerRoundsPlayed = 0;
             foreach (var player in this.players)
             {
                 this.playersDecks.Add(player.Id, new PlayerDeck());
@@ -59,7 +62,7 @@ namespace LanternCardGame.Game
 
         public int MaxPoints => this.maxPoints;
 
-        public bool IsMaxPointsReached => this.playersPoints.Any(kvp => kvp.Value >= this.maxPoints);
+        public bool AreMaxPointsReached => this.playersPoints.Any(kvp => kvp.Value >= this.maxPoints);
 
         public bool AllPlayersReady => this.playersReady.All(kvp => kvp.Value == true);
 
@@ -140,14 +143,15 @@ namespace LanternCardGame.Game
 
             this.StartNewRound();
             this.roundsPlayed = 0;
+            this.rotationsPerRoundsPlayed = 0;
         }
 
         public void StartNewRound()
         {
             this.roundsPlayed++;
             this.currentTurnPlayerId = this.startingRoudTurnPlayerId;
-            this.rotationsPerRoundsPlayed = 0;
             this.SetNextPlayerTurn();
+            this.rotationsPerRoundsPlayed = 0;
             this.startingRoudTurnPlayerId = this.currentTurnPlayerId;
             this.RoundWinner = null;
             this.RoundOver = false;
@@ -227,6 +231,7 @@ namespace LanternCardGame.Game
         {
             this.DoesPlayerExists(playerId);
             this.playersPoints[playerId] += points;
+            this.playersLastRoundPoints[playerId] = points;
             return this.playersPoints[playerId];
         }
 
@@ -234,6 +239,7 @@ namespace LanternCardGame.Game
         {
             this.DoesPlayerExists(playerId);
             this.playersPoints[playerId] -= points;
+            this.playersLastRoundPoints[playerId] = points;
             return this.playersPoints[playerId];
         }
 
@@ -246,6 +252,11 @@ namespace LanternCardGame.Game
         public IDictionary<string, int> GetAllPlayerPoints()
         {
             return this.playersPoints;
+        }
+
+        public IDictionary<string, int> GetAllPlayerLastRoundPoints()
+        {
+            return this.playersLastRoundPoints;
         }
 
         public ICollection<Card> RearrangePlayerCards(string playerId, ICollection<Card> cards)

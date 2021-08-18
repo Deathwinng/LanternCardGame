@@ -1,8 +1,8 @@
-﻿#leave-game-bg.hide {
+﻿#leave-game-overlay.hide {
     display: none;
 }
 
-#leave-game-bg.show {
+#leave-game-overlay.show {
     display: block;
     position: fixed;
     left: 0;
@@ -13,7 +13,7 @@
     z-index: 2;
 }
 
-    #leave-game-bg.show #leave-game-ui {
+    #leave-game-overlay.show #leave-game-ui {
         padding: 25px;
         position: absolute;
         left: 50%;
@@ -22,16 +22,16 @@
         background: white;
     }
 
-        #leave-game-bg.show #leave-game-ui .text {
+        #leave-game-overlay.show #leave-game-ui .text {
             font-size: 25px;
         }
 
-        #leave-game-bg.show #leave-game-ui .buttons {
+        #leave-game-overlay.show #leave-game-ui .buttons {
             display: flex;
             justify-content: center;
         }
 
-            #leave-game-bg.show #leave-game-ui .buttons button {
+            #leave-game-overlay.show #leave-game-ui .buttons button {
                 margin: 0 5px;
                 min-width: 100px;
                 justify-content: center;
@@ -64,7 +64,7 @@
         text-align: center;
     }
 
-    #round-over .players-list {
+    #round-over .players {
         flex: 1 1 auto;
         text-align: center;
     }
@@ -79,12 +79,16 @@
             margin: 0 5px;
         }
 
-#oposing-players-decks {
-    display: flex;
-    flex: 0 1 auto;
-    align-items: center;
-    justify-content: center;
-}
+    #round-over li:first-child {
+        font-weight: bold;
+    }
+
+    #oposing-players-decks {
+        display: flex;
+        flex: 0 1 auto;
+        align-items: center;
+        justify-content: center;
+    }
 
 .oposing-player-deck {
     display: flex;
@@ -242,7 +246,7 @@
 
 
 @media (max-width: 900px) {
-    #leave-game-bg.show #leave-game-ui {
+    #leave-game-overlay.show #leave-game-ui {
         min-width: 90vw;
     }
 
