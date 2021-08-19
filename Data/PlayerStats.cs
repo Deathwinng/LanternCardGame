@@ -32,6 +32,6 @@ namespace LanternCardGame.Data
         [Range(0, int.MaxValue)]
         public int GamesPlacedLast { get; set; }
 
-        public ApplicationUser User { get; set; }
+        public virtual ApplicationUser User { get; set; }
     }
 }

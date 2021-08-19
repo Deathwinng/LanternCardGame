@@ -57,6 +57,7 @@ namespace LanternCardGame
             services.AddTransient<UserService>();
             services.AddTransient<JwtTokenProvider>();
             services.AddTransient<PlayerStatsService>();
+            services.AddTransient<FriendsService>();
             services.AddResponseCompression(opts =>
             {
                 opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(

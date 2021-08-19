@@ -268,7 +268,7 @@
                             {
                                 @this.gameInfo?.CurrentTurnPlayerUsername@:'s turn.
                             }
-                            <span id="turn-timer" class="@(this.turnTimerCounter <= this.room?.SecondsPerTurn / 2 ? (this.turnTimerCounter <= (this.room?.SecondsPerTurn / 2) / 2 ? "text-danger" : "text-warning") : null)">@this.turnTimerCounter</span>
+                            <span id="turn-timer" class="@(this.turnTimerCounter <= 15 ? (this.turnTimerCounter <= 7 ? "text-danger" : "text-warning") : null)">@this.turnTimerCounter</span>
                         </div>
 
                         <div id="main-deck">

@@ -8,12 +8,16 @@
 @inject OnlinePlayersService playersService
 @inject UserService userService
 @inject NotifyService notifyService
+@inject FriendsService friendsService
 @inject NotificationService notificationService
 @inject CurrentUserService currentUserService
 
 <div class="page">
     <div class="sidebar">
-        <NavMenu ShowNavMenu="!this.duplicatePlayer" OnlinePlayers="this.onlinePlayers" Player="this.player" />
+        <NavMenu ShowNavMenu="!this.duplicatePlayer"
+                 OnlinePlayers="this.onlinePlayers"
+                 Player="this.player"
+                 FriendRequests="this.friendRequests" />
     </div>
 
     <div class="main">
@@ -41,6 +45,7 @@
     private IList<string[]> subscriptionsInfo = new List<string[]>();
     private PlayerModel player;
     private string duplicatePlayerNotificationId;
+    private int friendRequests = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -73,15 +78,22 @@
 
             return;
         }
-        if (this.currentUserService.IsAuthenticated)
+        else if (this.currentUserService.IsAuthenticated)
         {
             this.player = this.playersService.PlayerConnected(this.currentUserService.UserId, this.currentUserService.Username);
             this.currentUserService.InstanceId = this.player.InstanceId;
+            this.friendRequests = this.friendsService.GetPlayerFriendRequestsUsernames(this.player.Id)?.Count() ?? 0;
 
             this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "ReceiveNotification", async () =>
             {
                 this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
                 await InvokeAsync(this.StateHasChanged);
+            }));
+
+            this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "FriendRequest", async () =>
+            {
+                this.friendRequests = this.friendsService.GetPlayerFriendRequestsUsernames(this.player.Id)?.Count() ?? 0;
+                await this.InvokeAsync(this.StateHasChanged);
             }));
 
             this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "UpdateOnlinePlayers", async () => await UpdateOnlinePlayersAsync()));

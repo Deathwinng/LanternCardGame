@@ -47,6 +47,10 @@
                             <li class="nav-item px-3 mt-4">
                                 <NavLink class="nav-link" href=@($"/user/{context.User.Identity.Name}")>
                                     <span class="oi oi-person" aria-hidden="true"></span> @context.User.Identity.Name
+                                    @if (this.FriendRequests > 0)
+                                    {
+                                        <span class="badge badge-danger ml-2">@this.FriendRequests</span>
+                                    }
                                 </NavLink>
                             </li>
                             <li class="nav-item px-3">
@@ -121,6 +125,9 @@
 
     [Parameter]
     public PlayerModel Player { get; set; }
+
+    [Parameter]
+    public int FriendRequests { get; set; }
 
     private bool collapseNavMenu = true;
 
