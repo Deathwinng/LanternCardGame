@@ -28,6 +28,7 @@
             <th>Name</th>
             <th>Players</th>
             <th>Max Points</th>
+            <th>Seconds per turn</th>
             <th></th>
         </tr>
     </thead>
@@ -44,14 +45,15 @@
         {
             foreach (var room in rooms)
             {
-                <tr class="d-md-table-row">
-                    <td>@(string.IsNullOrWhiteSpace(room.Name) ? "(No name)" : room.Name)</td>
-                    <td>@room.PlayerCount / @room.MaxPlayers </td>
-                    <td>@room.MaxPoints </td>
-                    <td>
-                        <button class="btn btn-primary w-100" disabled="@(room.PlayerCount == room.MaxPlayers)" @onclick="() => JoinRoom(room.Id)">Join</button>
-                    </td>
-                </tr>
+    <tr class="d-md-table-row">
+        <td>@(string.IsNullOrWhiteSpace(room.Name) ? "(No name)" : room.Name)</td>
+        <td>@room.PlayerCount / @room.MaxPlayers </td>
+        <td>@room.MaxPoints </td>
+        <td>@room.SecondsPerTurn </td>
+        <td>
+            <button class="btn btn-primary w-100" disabled="@(room.PlayerCount == room.MaxPlayers)" @onclick="() => JoinRoom(room.Id)">Join</button>
+        </td>
+    </tr>
             }
         }
     </tbody>

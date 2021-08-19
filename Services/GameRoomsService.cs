@@ -75,6 +75,7 @@ namespace LanternCardGame.Services
                 MaxPlayers = roomModel.NumberOfPlayers,
                 OwnerId = playerId,
                 MaxPoints = roomModel.MaxPoints,
+                SecondsPerTurn = roomModel.SecondsPerTurn,
                 InDeveloperMode = roomModel.DeveloperMode,
             };
 

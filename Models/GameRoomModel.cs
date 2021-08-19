@@ -23,6 +23,8 @@ namespace LanternCardGame.Models
 
         public int MaxPoints { get; set; }
 
+        public int SecondsPerTurn { get; set; }
+
         public bool InGame { get; set; }
 
         public int PlayerCount => Players.Count;

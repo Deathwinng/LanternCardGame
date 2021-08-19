@@ -1,4 +1,6 @@
-﻿export function resizePlayerDeck() {
+﻿var turnIntervalId;
+
+export function resizePlayerDeck() {
     var playerDeck = document.querySelector('#player-deck');
     var sidebarWidth = document.querySelector('.sidebar').offsetWidth;
     sidebarWidth = sidebarWidth <= 250 ? 250 : 0;

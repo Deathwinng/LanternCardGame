@@ -4,6 +4,7 @@ using LanternCardGame.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Timers;
 
 namespace LanternCardGame.Game
 {
@@ -14,6 +15,8 @@ namespace LanternCardGame.Game
         private string startingRoudTurnPlayerId;
         private PlayerTurnAllowedMoves currentTurnPlayerAllowedMoves;
         private readonly int maxPoints;
+        private readonly int secondsPerTurn;
+        private readonly Timer turnTimer;
         private int roundsPlayed;
         private int rotationsPerRoundsPlayed;
         private readonly IDictionary<string, PlayerDeck> playersDecks;
@@ -26,11 +29,18 @@ namespace LanternCardGame.Game
         public GameInstance(
             string gameId,
             ICollection<PlayerModel> players,
-            int maxPoints)
+            int maxPoints,
+            int secondsPerTurn)
         {
             this.GameId = gameId;
             this.players = players.Shuffle().ToList();
             this.maxPoints = maxPoints;
+            this.secondsPerTurn = secondsPerTurn;
+            this.turnTimer = new Timer(secondsPerTurn * 1000)
+            {
+                AutoReset = false
+            };
+
             this.deck = new Deck();
             this.emptyDeck = new EmptyDeck();
             this.currentTurnPlayerId = this.players.First().Id;
@@ -79,6 +89,8 @@ namespace LanternCardGame.Game
         public string RoundWinner { get; set; }
 
         public ICollection<PlayerModel> Players => this.players;
+
+        public int PlayersCount => this.players.Count;
 
         public Card DrawCard(int cardId)
         {
@@ -239,7 +251,7 @@ namespace LanternCardGame.Game
         {
             this.DoesPlayerExists(playerId);
             this.playersPoints[playerId] -= points;
-            this.playersLastRoundPoints[playerId] = points;
+            this.playersLastRoundPoints[playerId] = -points;
             return this.playersPoints[playerId];
         }
 
@@ -254,7 +266,7 @@ namespace LanternCardGame.Game
             return this.playersPoints;
         }
 
-        public IDictionary<string, int> GetAllPlayerLastRoundPoints()
+        public IDictionary<string, int> GetLastRoundGainedPlayerPoints()
         {
             return this.playersLastRoundPoints;
         }
@@ -270,6 +282,27 @@ namespace LanternCardGame.Game
             this.DoesPlayerExists(playerId);
             var player = this.players.First(x => x.Id == playerId);
             this.players.Remove(player);
+        }
+
+        public void RestartTurnTimer()
+        {
+            this.turnTimer.Stop();
+            this.turnTimer.Start();
+        }
+
+        public void StopTurnTimer()
+        {
+            this.turnTimer.Stop();
+        }
+
+        public void DisposeTurnTimer()
+        {
+            this.turnTimer?.Dispose();
+        }
+
+        public void SetTurnTimerEvent(ElapsedEventHandler eventHandler)
+        {
+            this.turnTimer.Elapsed += eventHandler;
         }
 
         private PlayerDeck GetPlayerDeck(string playerId)

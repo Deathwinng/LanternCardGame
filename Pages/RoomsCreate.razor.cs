@@ -11,6 +11,7 @@ namespace LanternCardGame.Pages
         {
             this.NumberOfPlayers = numberOfMinPlayers;
             this.MaxPoints = 100;
+            this.SecondsPerTurn = 30;
         }
 
         [Required(ErrorMessage = "{0} is required.")]
@@ -25,6 +26,10 @@ namespace LanternCardGame.Pages
         [Range(20, 1000, ErrorMessage = "{0} must be between {1} and {2}.")]
         [Display(Name = "Maximum number of points")]
         public int MaxPoints { get; set; }
+
+        [Range(10, 5 * 60, ErrorMessage = "{0} must be between {1} and {2}.")]
+        [Display(Name = "Seconds per turn")]
+        public int SecondsPerTurn { get; set; }
 
         public bool DeveloperMode { get; set; }
     }

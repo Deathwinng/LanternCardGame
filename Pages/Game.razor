@@ -7,6 +7,7 @@
 @using LanternCardGame.Game
 @using LanternCardGame.Game.Cards
 @using LanternCardGame.Pages.Components
+@using Microsoft.AspNetCore.Components.Web.Extensions.Head
 
 @inject GameRoomsService roomService
 @inject CurrentUserService userService
@@ -18,6 +19,8 @@
 
 @if (this.playersReady)
 {
+    <Title Value="Playing Lantern Card Game"></Title>
+
     @if (this.developerMode && this.room.PlayerCount == 1)
     {
         <span>DEVELOPER MODE</span>
@@ -61,6 +64,7 @@
                 margin-top: 80px !important;
             }
         </style>
+        <Title Value="@($"Room {this.room.Name}")"></Title>
     }
     else
     {
@@ -71,7 +75,7 @@
                 </div>
                 <div class="buttons">
                     <button class="btn btn-success" @onclick="async () => await this.LeaveMidGameTogglePopupAsync()">Stay</button>
-                    <button class="btn btn-outline-danger" @onclick="this.LeaveMidGameAsync">Leave</button>
+                    <button class="btn btn-outline-danger" @onclick="this.LeaveMidGame">Leave</button>
                 </div>
             </div>
         </div>
@@ -91,7 +95,7 @@
                     messageHeadline = "Round results:";
                     if (!string.IsNullOrEmpty(this.roundWinner))
                     {
-                        message += $"{this.roundWinner} lit up! ";
+                        message = $"{this.roundWinner} lit up! ";
                     }
                 }
                 else if (this.roundOver)
@@ -110,92 +114,95 @@
                 else if (this.gameOver)
                 {
                     messageHeadline = "Game over!";
-                    var lastPlayer = this.gameInfo.PlayersPoints.OrderByDescending(kvp => kvp.Value).First().Key;
-                    message += $"Points reached by {lastPlayer}.";
+                    var lastPlayers = this.gameInfo.PlayersPoints
+                        .Where(x => x.Value >= this.room.MaxPoints)
+                        .OrderByDescending(kvp => kvp.Value)
+                        .Select(kvp => kvp.Key);
+                    message = $"Points reached by {string.Join(", ", lastPlayers)}.";
                 }
 
-            <div id="round-over" class="border rounded shadow">
-                <div id="message-headline" class="mb-4">
-                    @messageHeadline
-                </div>
-
-                <div id="message">
-                    @message
-                </div>
-
-                @if (this.gameOver)
-                {
-                    var playerPoints = this.gameInfo.PlayersPoints.OrderBy(kvp => kvp.Value).ToList();
-                    <div>Rounds played: @(this.gameInfo.RoundsPlayed + 1)</div>
-                    <table class="table table-borderless mt-3 players">
-                        <tbody>
-                            @for (int i = 0; i < playerPoints.Count; i++)
-                            {
-                                <tr>
-                                    <td>@(i + 1)</td>
-                                    <td>@(playerPoints[i].Key == this.userService.Username ? "You" : playerPoints[i].Key)</td>
-                                    <td>@playerPoints[i].Value</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-                else if (this.roundOverShowResults)
-                {
-                    var roundOverPlayersPointsDifference = this.roundOverPlayersPointsDifference.OrderBy(kvp => kvp.Value).ToList();
-                    <table class="table table-borderless mt-3 players">
-                        <tbody>
-                            @for (int i = 0; i < roundOverPlayersPointsDifference.Count; i++)
-                            {
-                                <tr>
-                                    <td>@(i + 1)</td>
-                                    <td>@(roundOverPlayersPointsDifference[i].Key == this.userService.Username ? "You" : roundOverPlayersPointsDifference[i].Key)</td>
-                                    <td class="font-weight-bold">
-                                        @(roundOverPlayersPointsDifference[i].Value > 0 ? "+" : null)
-                                        @roundOverPlayersPointsDifference[i].Value
-                                    </td>
-                                    <td>> @this.gameInfo.PlayersPoints[roundOverPlayersPointsDifference[i].Key]</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-
-                @if (this.roundOver && !this.roundOverReady)
-                {
-                    <button @onclick="this.FinishArraging" class="btn btn-outline-primary">Finish</button>
-                }
-                else if (this.roundOverShowResults)
-                {
-
-                    <button class="btn btn-primary" disabled>
-                        Next round starts in
-                        <span class="font-weight-bold">@this.nextRoundCounter</span>
-                    </button>
-                }
-                else if (!this.gameOver)
-                {
-                    <button class="btn btn-success" disabled>
-                        Waiting for others.
-                        <span class="spinner-border spinner-border-sm"></span>
-                    </button>
-                }
-                else if (this.gameOver)
-                {
-                    <div id="game-over-buttons">
-                        <button class="btn btn-success"
-                                disabled="@(!this.replayButtonActive)"
-                                @onclick="this.Replay">
-                            @this.numberOfReplayReadyPlayers / @this.gameInfo.PlayersCardsNumber.Count Play again?
-                        </button>
-
-                        <button class="btn btn-danger"
-                                @onclick='() => this.navigationManager.NavigateTo("/")'>
-                            Leave
-                        </button>
+                <div id="round-over" class="border rounded shadow">
+                    <div id="message-headline" class="mb-4">
+                        @messageHeadline
                     </div>
-                }
-            </div>
+
+                    <div id="message">
+                        @message
+                    </div>
+
+                    @if (this.gameOver)
+                    {
+                        var playerPoints = this.gameInfo.PlayersPoints.OrderBy(kvp => kvp.Value).ToList();
+                        <div class="mb-3">Rounds played: @(this.gameInfo.RoundsPlayed + 1)</div>
+                        <table class="table table-borderless mt-3 players">
+                            <tbody>
+                                @for (int i = 0; i < playerPoints.Count; i++)
+                                {
+                                    <tr>
+                                        <td>@(i + 1)</td>
+                                        <td>@(playerPoints[i].Key == this.userService.Username ? "You" : playerPoints[i].Key)</td>
+                                        <td>@playerPoints[i].Value</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else if (this.roundOverShowResults)
+                    {
+                        var roundOverPlayersPointsDifference = this.roundOverPlayersPointsDifference.OrderBy(kvp => kvp.Value).ToList();
+                        <table class="table table-borderless mt-3">
+                            <tbody>
+                                @for (int i = 0; i < roundOverPlayersPointsDifference.Count; i++)
+                                {
+                                    <tr>
+                                        <td>@(i + 1)</td>
+                                        <td>@(roundOverPlayersPointsDifference[i].Key == this.userService.Username ? "You" : roundOverPlayersPointsDifference[i].Key)</td>
+                                        <td class="font-weight-bold">
+                                            @(roundOverPlayersPointsDifference[i].Value > 0 ? "+" : null)@roundOverPlayersPointsDifference[i].Value
+                                        </td>
+                                        <td>> @this.gameInfo.PlayersPoints[roundOverPlayersPointsDifference[i].Key]</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+
+                    @if (this.roundOver && !this.roundOverReady)
+                    {
+                        <button @onclick="this.FinishArraging" class="btn btn-outline-primary">Finish</button>
+                    }
+                    else if (this.roundOverShowResults)
+                    {
+
+                        <button class="btn btn-primary" disabled>
+                            Next round starts in
+                            <span class="font-weight-bold">@this.nextRoundCounter </span>
+                            <span class="spinner-border spinner-border-sm"></span>
+                        </button>
+                    }
+                    else if (!this.gameOver)
+                    {
+                        <button class="btn btn-success" disabled>
+                            Waiting for others.
+                            <span class="spinner-border spinner-border-sm"></span>
+                        </button>
+                    }
+                    else if (this.gameOver)
+                    {
+                        <div id="game-over-buttons">
+                            <button class="btn btn-success"
+                                    disabled="@(!this.replayButtonActive)"
+                                    @onclick="this.Replay">
+                                @this.numberOfReplayReadyPlayers / @this.gameInfo.PlayersCardsNumber.Count Play again?
+                            </button>
+
+                            <button class="btn btn-danger"
+                                    @onclick='() => this.navigationManager.NavigateTo("/")'>
+                                Leave
+                            </button>
+                        </div>
+                    }
+                </div>
             }
             else
             {
@@ -252,7 +259,16 @@
                     <div id="main-deck-wrapper">
                         <div id="player-turn-name"
                              class="mb-1 @(this.myTurn || this.roundWon || this.roundOver ? "my-turn" : null)">
-                            @(this.myTurn ? "Your turn!" : $"{this.gameInfo.CurrentTurnPlayerUsername}'s turn.")
+                            @if (this.myTurn)
+                            {
+                                @:Your turn!
+                                @*<span class="oi oi-question-mark text-primary ml-2"></span>*@
+                            }
+                            else
+                            {
+                                @this.gameInfo?.CurrentTurnPlayerUsername@:'s turn.
+                            }
+                            <span id="turn-timer" class="@(this.turnTimerCounter <= this.room?.SecondsPerTurn / 2 ? (this.turnTimerCounter <= (this.room?.SecondsPerTurn / 2) / 2 ? "text-danger" : "text-warning") : null)">@this.turnTimerCounter</span>
                         </div>
 
                         <div id="main-deck">
@@ -328,7 +344,7 @@ else
     [Parameter]
     public string GameId { get; set; }
 
-    private IJSObjectReference module;
+    private IJSObjectReference modules;
     private GameRoomModel room;
     private PlayerModel player;
     private List<Card> playerCards = new List<Card>(10);
@@ -341,8 +357,10 @@ else
     private IDictionary<string, int> roundOverPlayersPointsDifference = new Dictionary<string, int>();
     private PlayerTurnAllowedMoves allowedMoves = new PlayerTurnAllowedMoves();
     private GameInfo gameInfo = new GameInfo();
-    private Timer roundSatartsTimer = new Timer(1 * 1000);
+    private Timer roundStartsTimer = new Timer(1 * 1000);
     private int nextRoundCounter = 10;
+    private Timer turnTimer = new Timer(1 * 1000);
+    private int turnTimerCounter;
     private bool myTurn = false;
     private bool roundWon = false;
     private bool roundOver = false;
@@ -365,13 +383,26 @@ else
     {
         this.room = this.roomService.GetRoom(GameId);
         this.player = this.playersService.GetPlayerById(this.userService.UserId);
-        this.roundSatartsTimer.AutoReset = true;
-        this.roundSatartsTimer.Elapsed += async (source, e) =>
+        this.roundStartsTimer.AutoReset = true;
+        this.roundStartsTimer.Elapsed += async (source, e) =>
         {
             this.nextRoundCounter--;
             if (this.nextRoundCounter <= 0)
             {
-                this.roundSatartsTimer.Stop();
+                this.roundStartsTimer.Stop();
+            }
+
+            await this.InvokeAsync(this.StateHasChanged);
+        };
+
+        this.turnTimerCounter = this.room?.SecondsPerTurn ?? 0;
+        this.turnTimer.AutoReset = true;
+        this.turnTimer.Elapsed += async (source, e) =>
+        {
+            this.turnTimerCounter--;
+            if (this.turnTimerCounter <= 0)
+            {
+                this.turnTimer.Stop();
             }
 
             await this.InvokeAsync(this.StateHasChanged);
@@ -391,8 +422,8 @@ else
             }
             else
             {
-                this.module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/scriptModules.js");
-                await this.module.InvokeVoidAsync("addResizePlayerDeckEvent");
+                this.modules = await JS.InvokeAsync<IJSObjectReference>("import", "./js/scriptModules.js");
+                await this.modules.InvokeVoidAsync("addResizePlayerDeckEvent");
                 this.developerMode = this.room.InDeveloperMode;
                 if (!this.developerMode)
                 {
@@ -406,6 +437,11 @@ else
                     this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "UpdateGameInfo", async () =>
                     {
                         this.gameInfo = this.gameService.GetGameInfo(GameId);
+                        if (this.myTurn && this.gameInfo.CurrentTurnPlayerUsername != this.player.Username)
+                        {
+                            this.myTurn = false;
+                        }
+
                         await InvokeAsync(this.StateHasChanged);
                     }));
 
@@ -428,9 +464,9 @@ else
                     {
                         this.roundOverShowResults = true;
                         this.gameInfo = this.gameService.GetGameInfo(GameId);
-                        this.roundOverPlayersPointsDifference = this.gameService.GetLastRoundPlayerPoints(GameId);
+                        this.roundOverPlayersPointsDifference = this.gameService.GetLastRoundGainedPlayerPoints(GameId);
                         this.nextRoundCounter = 10;
-                        this.roundSatartsTimer.Start();
+                        this.roundStartsTimer.Start();
                         await this.InvokeAsync(this.StateHasChanged);
                     }));
 
@@ -443,7 +479,7 @@ else
                         this.roundWon = false;
                         this.gameOver = true;
                         this.roundOverPoints = this.gameService.CalculatePlayerPoints(this.GameId, this.player.Id);
-                        await this.statsService.PlayerFinishedGameAsync(this.player.Id);
+                        this.statsService.PlayerFinishedGame(this.player.Id);
 
                         await this.InvokeAsync(this.StateHasChanged);
                     }));
@@ -456,6 +492,11 @@ else
                     this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "PlacedLast", () =>
                     {
                         this.statsService.PlayerPlacedLast(this.player.Id);
+                    }));
+
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "NextPlayerTurn", () =>
+                    {
+                        this.RestartTurnTimer();
                     }));
 
                     this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "MyTurn", async () =>
@@ -478,6 +519,7 @@ else
                         this.playerCards = this.gameService.GetPlayerCards(this.GameId, this.player.Id).ToList();
                         this.gameInfo = this.gameService.GetGameInfo(this.GameId);
                         this.pairCardsGroups = this.gameService.GetPairGroups(this.playerCards);
+                        this.RestartTurnTimer();
                         await InvokeAsync(this.StateHasChanged);
                     }));
 
@@ -504,6 +546,7 @@ else
                 this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "AllPlayersReady", async () =>
                 {
                     this.playersReady = true;
+                    this.RestartTurnTimer();
                     await InvokeAsync(this.StateHasChanged);
                 }));
 
@@ -511,9 +554,9 @@ else
             }
         }
 
-        if (this.module != null)
+        if (this.modules != null)
         {
-            await this.module.InvokeVoidAsync("resizePlayerDeck");
+            await this.modules.InvokeVoidAsync("resizePlayerDeck");
         }
 
         await base.OnAfterRenderAsync(firstRender);
@@ -530,6 +573,13 @@ else
     {
         this.playerCards = this.gameService.GetPlayerCards(this.GameId, this.player.Id).ToList();
         await InvokeAsync(this.StateHasChanged);
+    }
+
+    private void RestartTurnTimer()
+    {
+        this.turnTimerCounter = this.room.SecondsPerTurn;
+        this.turnTimer.Stop();
+        this.turnTimer.Start();
     }
 
     private void DrawAny(int cardId)
@@ -766,10 +816,10 @@ else
         await this.InvokeAsync(this.StateHasChanged);
     }
 
-    private async Task LeaveMidGameAsync()
+    private void LeaveMidGame()
     {
         this.gameService.DropGame(this.GameId, this.player.Username);
-        await this.statsService.PlayerLeftGameAsync(this.player.Id);
+        this.statsService.PlayerLeftGame(this.player.Id);
     }
 
     private void LeaveGame()
@@ -787,19 +837,22 @@ else
             }
             else
             {
-                await this.LeaveMidGameAsync();
+                this.LeaveMidGame();
             }
         }
 
-        if (this.module is not null)
+        if (this.modules is not null)
         {
-            await this.module.InvokeVoidAsync("removeResizePlayerDeckEvent");
-            await this.module.DisposeAsync();
+            await this.modules.InvokeVoidAsync("removeResizePlayerDeckEvent");
+            await this.modules.DisposeAsync();
         }
 
         foreach (var subscriptionInfo in this.subscriptionsInfo)
         {
             this.notifyService.Unsubscribe(subscriptionInfo[0], subscriptionInfo[1]);
         }
+
+        this.roundStartsTimer?.Dispose();
+        this.turnTimer?.Dispose();
     }
 }

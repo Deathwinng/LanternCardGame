@@ -32,6 +32,12 @@
         </div>
         <InputNumber @bind-Value="@this.model.MaxPoints" class="form-control" min="20" max="1000" />
     </div>
+    <div class="input-group mb-2">
+        <div class="input-group-prepend">
+            <span class="input-group-text">Seconds per turn:</span>
+        </div>
+        <InputNumber @bind-Value="@this.model.SecondsPerTurn" class="form-control" min="10" max="@(5 * 60)" />
+    </div>
 
     <button class="btn btn-outline-primary">Create new room</button>
 </EditForm>

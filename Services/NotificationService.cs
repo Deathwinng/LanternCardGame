@@ -12,11 +12,12 @@ namespace LanternCardGame.Services
 
         public NotificationService()
         {
-            notifications = new List<NotificationModel>();
+            this.notifications = new List<NotificationModel>();
         }
+
         public IEnumerable<NotificationModel> GetPlayerNotifications(string playerInstanceId)
         {
-            return notifications.Where(x => x.PlayerInstanceId == playerInstanceId);
+            return this.notifications.Where(x => x.PlayerInstanceId == playerInstanceId);
         }
 
         public string AddPlayerNotification(
@@ -26,28 +27,58 @@ namespace LanternCardGame.Services
             NotificationType severity = NotificationType.Primary,
             bool isDissmissable = true)
         {
-            var notification = new NotificationModel(
-                playerInstanceId,
-                message,
-                severity,
-                isDissmissable,
-                dissmissTimerInSeconds);
-            notifications.Add(notification);
-            return notification.Id;
+            lock (this.balanceLock)
+            {
+                var notification = new NotificationModel(
+                    playerInstanceId,
+                    message,
+                    severity,
+                    isDissmissable,
+                    dissmissTimerInSeconds);
+                this.notifications.Add(notification);
+
+                return notification.Id;
+            }
+        }
+
+        public IEnumerable<string> AddPlayersNotification(
+            IEnumerable<string> playerInstanceIds,
+            string message,
+            double dissmissTimerInSeconds = 0,
+            NotificationType severity = NotificationType.Primary,
+            bool isDissmissable = true)
+        {
+            lock (this.balanceLock)
+            {
+                var notificationIds = new List<string>(playerInstanceIds.Count());
+                foreach (var playerInstanceId in playerInstanceIds)
+                {
+                    var notification = new NotificationModel(
+                        playerInstanceId,
+                        message,
+                        severity,
+                        isDissmissable,
+                        dissmissTimerInSeconds);
+                    this.notifications.Add(notification);
+                    notificationIds.Add(notification.Id);
+                }
+
+                return notificationIds;
+            }
         }
 
         public void RemovePlayerNotification(string notificationId)
         {
-            lock (balanceLock)
+            lock (this.balanceLock)
             {
-                var notification = notifications.FirstOrDefault(x => x.Id == notificationId);
-                notifications.Remove(notification);
+                var notification = this.notifications.FirstOrDefault(x => x.Id == notificationId);
+                this.notifications.Remove(notification);
             }
         }
 
         public void RemoveAllPlayerNotifications(string playerInstanceId)
         {
-            lock (balanceLock)
+            lock (this.balanceLock)
             {
                 var notifications = this.notifications.Where(x => x.Id == playerInstanceId);
                 this.notifications = this.notifications.Except(notifications).ToList();

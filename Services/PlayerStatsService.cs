@@ -9,6 +9,7 @@ namespace LanternCardGame.Services
     public class PlayerStatsService
     {
         private readonly ApplicationDbContext dbContext;
+        private readonly object balanceLock = new object();
 
         public PlayerStatsService(ApplicationDbContext dbContext)
         {
@@ -25,47 +26,58 @@ namespace LanternCardGame.Services
             return this.dbContext.Users.Where(x => x.UserName == username).Select(x => x.PlayerStats).FirstOrDefault();
         }
 
-        public async Task PlayerLeftGameAsync(string playerId)
+        public void PlayerLeftGame(string playerId)
         {
-            var stats = this.GetPlayerStatsById(playerId);
-            stats.GamesLeft++;
-            await this.dbContext.SaveChangesAsync();
+            lock (this.balanceLock)
+            {
+                var stats = this.GetPlayerStatsById(playerId);
+                stats.GamesLeft++;
+                this.dbContext.SaveChanges();
+            }
         }
 
         public void PlayerPlacedFirs(string playerId)
         {
-            var stats = this.GetPlayerStatsById(playerId);
-            stats.GamesWon++;
-            this.dbContext.SaveChanges();
+            lock (this.balanceLock)
+            {
+                var stats = this.GetPlayerStatsById(playerId);
+                stats.GamesWon++;
+                this.dbContext.SaveChanges();
+            }
         }
 
         public void PlayerPlacedLast(string playerId)
         {
-            var stats = this.GetPlayerStatsById(playerId);
-            stats.GamesPlacedLast++;
-            this.dbContext.SaveChanges();
+            lock (this.balanceLock)
+            {
+                var stats = this.GetPlayerStatsById(playerId);
+                stats.GamesPlacedLast++;
+                this.dbContext.SaveChanges();
+            }
         }
 
-        public async Task PlayerFinishedGameAsync(string playerId)
+        public void PlayerFinishedGame(string playerId)
         {
-            var stats = this.GetPlayerStatsById(playerId);
-            stats.GamesFinished++;
-            await this.dbContext.SaveChangesAsync();
+            lock (this.balanceLock)
+            {
+                var stats = this.GetPlayerStatsById(playerId);
+                stats.GamesFinished++;
+                this.dbContext.SaveChanges();
+            }
         }
 
         public void PlayersFinishedGame(IEnumerable<string> playerIds)
         {
-            var stats = this.dbContext.Users.Where(x => playerIds.Contains(x.Id)).Select(x => x.PlayerStats).ToList();
-            foreach (var stat in stats)
+            lock (this.balanceLock)
             {
-                stat.GamesFinished++;
-            }
-            this.dbContext.SaveChanges();
-        }
+                var stats = this.dbContext.Users.Where(x => playerIds.Contains(x.Id)).Select(x => x.PlayerStats).ToList();
+                foreach (var stat in stats)
+                {
+                    stat.GamesFinished++;
+                }
 
-        public async Task SavePlayerStatsAsync(PlayerStats playerStats)
-        {
-            await this.dbContext.SaveChangesAsync();
+                this.dbContext.SaveChanges();
+            }
         }
     }
 }
