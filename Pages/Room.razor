@@ -16,6 +16,8 @@
 {
     <Title Value="@($"Room {this.room.Name}")"></Title>
 
+    var isOwner = this.room?.OwnerId == this.userService.UserId;
+
     <h3>Room @this.room?.Name</h3>
     <p>@this.room?.PlayerCount / @this.room?.MaxPlayers</p>
 
@@ -23,7 +25,13 @@
     <ul class="list-group list-group-flush mb-3">
         @foreach (var player in room?.Players ?? new PlayerModel[0])
         {
-            <li class="list-group-item">@player?.Username</li>
+            <li class="list-group-item">
+                @player.Username
+                @if (this.room?.OwnerId == player.Id)
+                {
+                    <img src="/img/crown.png" width="20" height="20" class="ml-2" title="Host" />
+                }
+            </li>
         }
     </ul>
 
@@ -32,7 +40,7 @@
     </div>
 
     <div class="mb-3">
-        @if (this.room?.OwnerId == this.userService.UserId)
+        @if (isOwner)
         {
             <button class="btn btn-outline-success mr-2" disabled="@(this.room?.PlayerCount < this.room?.MaxPlayers ? true : false)" @onclick="this.StartGame">Start Game</button>
             <button class="btn btn-outline-danger" @onclick=" () => this.DeleteRoom()">Delete Room</button>

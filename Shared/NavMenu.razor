@@ -2,14 +2,18 @@
 
 <div class="top-row pl-4 navbar navbar-dark">
     <a class="navbar-brand" href="">Lantern Card Game <span class="badge badge-info">ALPHA</span></a>
-    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+    <button class="navbar-toggler position-relative" @onclick="ToggleNavMenu">
         <span class="navbar-toggler-icon"></span>
+        @if (this.FriendRequests > 0 && this.NavMenuCssClass == "collapse")
+        {
+            <span class="navbar-badge badge badge-danger position-absolute">@this.FriendRequests</span>
+        }
     </button>
 </div>
 
 <div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
     <ul class="nav flex-column">
-        @if (ShowNavMenu)
+        @if (this.ShowNavMenu)
         {
             <AuthorizeView>
                 <Authorized>

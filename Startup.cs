@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -43,7 +44,9 @@ namespace LanternCardGame
                 options.Password.RequiredUniqueChars = 1;
                 options.User.RequireUniqueEmail = true;
             })
+                .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
+
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<ApplicationUser>>();
@@ -91,7 +94,21 @@ namespace LanternCardGame
         {
             using (var serviceScope = app.ApplicationServices.CreateScope())
             {
-                serviceScope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.Migrate();
+                var context = serviceScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                context.Database.Migrate();
+
+                var roleStore = new RoleStore<IdentityRole>(context);
+                var roles = new string[] { "Administrator", "User" };
+
+                foreach (var role in roles)
+                {
+                    if (!context.Roles.Any(r => r.Name == role))
+                    {
+                        roleStore.CreateAsync(new IdentityRole(role));
+                    }
+                }
+
+                context.SaveChangesAsync();
             }
 
             app.UseResponseCompression();

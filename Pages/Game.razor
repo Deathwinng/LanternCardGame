@@ -85,18 +85,18 @@
             {
                 var messageHeadline = string.Empty;
                 var message = string.Empty;
-                @if (this.roundWon)
-                {
-                    messageHeadline = "Congratulations! You lit up!";
-                    message = "10 points substracted from your score. Waiting for other players to arrange their cards.";
-                }
-                else if (this.roundOverShowResults)
+                @if (this.roundOverShowResults)
                 {
                     messageHeadline = "Round results:";
                     if (!string.IsNullOrEmpty(this.roundWinner))
                     {
                         message = $"{this.roundWinner} lit up! ";
                     }
+                }
+                else if (this.roundWon)
+                {
+                    messageHeadline = "Congratulations! You lit up!";
+                    message = "10 points substracted from your score. Waiting for other players to arrange their cards.";
                 }
                 else if (this.roundOver)
                 {
@@ -140,7 +140,13 @@
                                 {
                                     <tr>
                                         <td>@(i + 1)</td>
-                                        <td>@(playerPoints[i].Key == this.userService.Username ? "You" : playerPoints[i].Key)</td>
+                                        <td>
+                                            @(playerPoints[i].Key == this.userService.Username ? "You" : playerPoints[i].Key)
+                                            @if (i == 0)
+                                            {
+                                                <img src="/img/crownGold.png" width="32" height="32" class="ml-2" />
+                                            }
+                                        </td>
                                         <td>@playerPoints[i].Value</td>
                                     </tr>
                                 }
@@ -169,7 +175,14 @@
 
                     @if (this.roundOver && !this.roundOverReady)
                     {
-                        <button @onclick="this.FinishArraging" class="btn btn-outline-primary">Finish</button>
+
+                        <button @onclick="this.FinishArraging" class="btn btn-outline-primary">
+                            Finish
+                            @if (this.room?.SecondsPerTurn > 0)
+                            {
+                                <span class="font-weight-bold">@this.turnTimerCounter</span>
+                            }
+                        </button>
                     }
                     else if (this.roundOverShowResults)
                     {
@@ -268,7 +281,12 @@
                             {
                                 @this.gameInfo?.CurrentTurnPlayerUsername@:'s turn.
                             }
-                            <span id="turn-timer" class="@(this.turnTimerCounter <= 15 ? (this.turnTimerCounter <= 7 ? "text-danger" : "text-warning") : null)">@this.turnTimerCounter</span>
+                            @if (this.room?.SecondsPerTurn > 0)
+                            {
+                                <span id="turn-timer" class="@(this.turnTimerCounter <= 15 ? (this.turnTimerCounter <= 7 ? "text-danger" : "text-warning") : null)">
+                                    @this.turnTimerCounter
+                                </span>
+                            }
                         </div>
 
                         <div id="main-deck">
@@ -312,7 +330,8 @@
                                        Card="card"
                                        HighlightMove="this.cardToMoveSelected && this.cardToMoveSelectedId == card.Id"
                                        HighlightWin="this.cardsToThrowToLightUp.Any(x => x == card.Id) && this.allowedMoves.LightUp"
-                                       PairId="this.pairCardsGroups.FindIndex(x => x.Any(y => y.Id == card.Id))" />
+                                       PairId="this.pairCardsGroups.FindIndex(x => x.Any(y => y.Id == card.Id))"
+                                       PairCount="this.pairCardsGroups.FirstOrDefault(x => x.Any(y => y.Id == card.Id))?.Count ?? 0" />
                     }
                 </div>
                 <div id="bottom-buttons">
@@ -448,6 +467,7 @@ else
                     this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "RoundWon", () =>
                     {
                         this.myTurn = false;
+                        this.roundOverReady = true;
                         this.roundWon = true;
                     }));
 
@@ -457,6 +477,7 @@ else
                         this.roundOverPoints = this.gameService.CalculatePlayerPoints(this.GameId, this.player.Id);
                         this.roundOver = true;
                         this.roundWinner = this.gameService.GetRoundWinner(this.GameId);
+                        this.RestartTurnTimer();
                         await this.InvokeAsync(this.StateHasChanged);
                     }));
 
@@ -468,6 +489,14 @@ else
                         this.nextRoundCounter = 10;
                         this.roundStartsTimer.Start();
                         await this.InvokeAsync(this.StateHasChanged);
+                    }));
+
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "ForceFinishAarraging", () =>
+                    {
+                        if (!this.roundOverReady && !this.roundOverShowResults && !this.roundWon)
+                        {
+                            this.FinishArraging();
+                        }
                     }));
 
                     this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "GameOver", async () =>
@@ -565,8 +594,8 @@ else
     public void FinishArraging()
     {
         this.roundOverReady = true;
+        this.turnTimer.Stop();
         this.gameService.RoundOverPlayerReady(this.GameId, this.player.Id);
-        this.StateHasChanged();
     }
 
     public async Task GetPlayerCardsAsync()

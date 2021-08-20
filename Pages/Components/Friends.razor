@@ -1,0 +1,162 @@
+﻿@implements IDisposable
+@inject CurrentUserService currentUserService
+@inject UserService userService
+@inject FriendsService friendsService
+@inject NotificationService notificationService
+@inject NotifyService notifyService
+@inject OnlinePlayersService playersService
+@inject NavigationManager navigationManager
+@using LanternCardGame.Shared.Enums
+
+@if (this.friendRequests.Count > 0 || this.sentFriendRequests.Count > 0)
+{
+    <h3>Friend requests <span class="badge badge-danger">@this.friendRequests.Count</span></h3>
+    <ul class="list-group mb-4">
+        @foreach (var requester in this.friendRequests)
+        {
+            <li class="list-group-item d-flex justify-content-between">
+                <span class="align-self-center">
+                    @requester
+                </span>
+                <div>
+                    <button class="btn btn-success" @onclick="async () => await this.AcceptFriendRequestAsync(requester)">Accept</button>
+                    <button class="btn btn-outline-danger" @onclick="async () => await this.DismissFriendRequestAsync(requester)">Dissmis</button>
+                </div>
+            </li>
+        }
+        @foreach (var receiver in this.sentFriendRequests)
+        {
+            <li class="list-group-item d-flex justify-content-between">
+                <span class="align-self-center">
+                    @receiver
+                </span>
+                <div>
+                    <button class="btn btn-outline-primary" disabled>Pending</button>
+                    <button class="btn btn-outline-danger" @onclick="async () => await this.CancelFriendRequestAsync(receiver)">Cancel</button>
+                </div>
+            </li>
+        }
+    </ul>
+}
+
+<h3>Friends <span class="badge badge-info">@(this.friends.Count + this.onlineFriends.Count)</span></h3>
+<ul class="list-group">
+    @if (this.friends.Count > 0 || this.onlineFriends.Count > 0)
+    {
+        if (this.onlineFriends.Count > 0)
+        {
+            <li class="list-group-item font-weight-bold text-success">Online</li>
+            @foreach (var friend in this.onlineFriends)
+            {
+                <FriendListItem FriendUsername="@friend.Key"
+                                RemoveFriend="async () => await this.RemoveFriendAsync(friend.Key)"
+                                FriendStatus="@friend.Value" />
+            }
+        }
+        if (this.friends.Count > 0)
+        {
+            <li class="list-group-item font-weight-bold text-secondary">Offline</li>
+            @foreach (var friend in this.friends)
+            {
+                <FriendListItem FriendUsername="@friend" RemoveFriend="async () => await this.RemoveFriendAsync(friend)" />
+            }
+        }
+    }
+    else
+    {
+        <li class="list-group-item">No friends.</li>
+    }
+</ul>
+
+@code {
+    [Parameter]
+    public string Username { get; set; }
+
+    private Dictionary<string, PlayerStatus> onlineFriends = new Dictionary<string, PlayerStatus>();
+    private HashSet<string> friends = new HashSet<string>();
+    private HashSet<string> friendRequests = new HashSet<string>();
+    private HashSet<string> sentFriendRequests = new HashSet<string>();
+    private ICollection<string[]> subscriptionsInfo = new HashSet<string[]>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await this.UpdateFriendsInfoAsync();
+        this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.currentUserService.InstanceId, "UpdateFriendsInfo", async () => await this.UpdateFriendsInfoAsync()));
+        await base.OnInitializedAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await this.UpdateFriendsInfoAsync();
+        await base.OnParametersSetAsync();
+    }
+
+    private async Task UpdateFriendsInfoAsync()
+    {
+        this.onlineFriends.Clear();
+        this.friends.Clear();
+        var friends = this.friendsService.GetPlayerFriends(this.currentUserService.UserId).ToList();
+        foreach (var friend in friends)
+        {
+            if (this.playersService.IsPlayerOnline(friend.Id))
+            {
+                var player = this.playersService.GetPlayerById(friend.Id);
+                this.onlineFriends[friend.UserName] = player.PlayerStatus;
+            }
+            else
+            {
+                this.friends.Add(friend.UserName);
+
+            }
+        }
+        this.friendRequests = this.friendsService.GetPlayerFriendRequestsUsernames(this.currentUserService.UserId).ToHashSet();
+        this.sentFriendRequests = this.friendsService.GetPendingPlayerFriendRequestsUsernames(this.currentUserService.UserId).ToHashSet();
+        await this.InvokeAsync(this.StateHasChanged);
+    }
+
+    private async Task AcceptFriendRequestAsync(string senderUsername)
+    {
+        await this.friendsService.AcceptFriendRequestAsync(senderUsername, this.currentUserService.Username);
+        await this.UpdateFriendsInfoAsync();
+        this.notifyService.InvokeByPlayer(this.currentUserService.InstanceId, "FriendRequest");
+        this.StateHasChanged();
+    }
+
+    private async Task DismissFriendRequestAsync(string senderUsername)
+    {
+        await this.friendsService.DismissFriendRequestAsync(senderUsername, this.currentUserService.Username);
+        this.friendRequests = this.friendsService.GetPlayerFriendRequestsUsernames(this.currentUserService.UserId).ToHashSet();
+        this.notifyService.InvokeByPlayer(this.currentUserService.InstanceId, "FriendRequest");
+        this.StateHasChanged();
+    }
+
+    private async Task CancelFriendRequestAsync(string receiverUsername)
+    {
+        await this.friendsService.DismissFriendRequestAsync(this.currentUserService.Username, receiverUsername);
+        this.sentFriendRequests = this.friendsService.GetPendingPlayerFriendRequestsUsernames(this.currentUserService.UserId).ToHashSet();
+        var reciever = await this.userService.GetUserByUsernameAsync(receiverUsername);
+        if (this.playersService.IsPlayerOnline(reciever.Id))
+        {
+            var instanceId = this.playersService.GetPlayerById(reciever.Id).InstanceId;
+            this.notifyService.InvokeByPlayer(instanceId, "FriendRequest");
+        }
+
+        this.StateHasChanged();
+    }
+
+    private async Task RemoveFriendAsync(string friendUsername)
+    {
+        await this.friendsService.RemoveFriend(this.Username, friendUsername);
+        await this.UpdateFriendsInfoAsync();
+        this.StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        foreach (var subInfo in this.subscriptionsInfo)
+        {
+            this.notifyService.Unsubscribe(subInfo[0], subInfo[1]);
+        }
+    }
+}

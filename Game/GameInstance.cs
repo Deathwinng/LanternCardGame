@@ -15,8 +15,8 @@ namespace LanternCardGame.Game
         private string startingRoudTurnPlayerId;
         private PlayerTurnAllowedMoves currentTurnPlayerAllowedMoves;
         private readonly int maxPoints;
-        private readonly int secondsPerTurn;
         private readonly Timer turnTimer;
+        private readonly Timer arragingTimer;
         private int roundsPlayed;
         private int rotationsPerRoundsPlayed;
         private readonly IDictionary<string, PlayerDeck> playersDecks;
@@ -35,8 +35,11 @@ namespace LanternCardGame.Game
             this.GameId = gameId;
             this.players = players.Shuffle().ToList();
             this.maxPoints = maxPoints;
-            this.secondsPerTurn = secondsPerTurn;
             this.turnTimer = new Timer(secondsPerTurn * 1000)
+            {
+                AutoReset = false
+            };
+            this.arragingTimer = new Timer(secondsPerTurn * 1000)
             {
                 AutoReset = false
             };
@@ -300,9 +303,40 @@ namespace LanternCardGame.Game
             this.turnTimer?.Dispose();
         }
 
-        public void SetTurnTimerEvent(ElapsedEventHandler eventHandler)
+        public void AddTurnTimerElapsedEvent(ElapsedEventHandler eventHandler)
         {
             this.turnTimer.Elapsed += eventHandler;
+        }
+
+        public void RemoveTurnTimerElapsedEvent(ElapsedEventHandler eventHandler)
+        {
+            this.turnTimer.Elapsed -= eventHandler;
+        }
+
+        public void RestartArragingTimer()
+        {
+            this.arragingTimer.Stop();
+            this.arragingTimer.Start();
+        }
+
+        public void StopArragingTimer()
+        {
+            this.arragingTimer.Stop();
+        }
+
+        public void DisposeArragingTimer()
+        {
+            this.arragingTimer?.Dispose();
+        }
+
+        public void AddArragingTimerElapsedEvent(ElapsedEventHandler eventHandler)
+        {
+            this.arragingTimer.Elapsed += eventHandler;
+        }
+
+        public void RemoveArragingTimerElapsedEvent(ElapsedEventHandler eventHandler)
+        {
+            this.arragingTimer.Elapsed -= eventHandler;
         }
 
         private PlayerDeck GetPlayerDeck(string playerId)

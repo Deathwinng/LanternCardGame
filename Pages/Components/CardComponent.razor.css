@@ -11,10 +11,10 @@
     font-family: Helvetica;
 }
 
-.card.empty {
-    box-shadow: none;
-    background: #ececec;
-}
+    .card.empty {
+        box-shadow: none;
+        background: #ececec;
+    }
 
 .player-card {
     margin: 5px -5px;
@@ -83,9 +83,13 @@
     transform: translateX(-50%);
     left: 50%;
     position: absolute;
-    height: 2px;
+    height: 3px;
     bottom: 10px;
 }
+
+    .card-pair.thin {
+        height: 1px;
+    }
 
     .card-pair.pair-id-0 {
         background: blue;

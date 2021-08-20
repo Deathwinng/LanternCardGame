@@ -1,6 +1,7 @@
 ﻿@page "/user/{Username}"
 
 @using Microsoft.AspNetCore.Components.Web.Extensions.Head
+@using LanternCardGame.Pages.Components
 
 @inject PlayerStatsService statsService
 @inject CurrentUserService currentUserService
@@ -41,7 +42,7 @@
     </div>
 
 
-    <ul class="list-group">
+    <ul class="list-group list-group-flush mb-4">
         <li class="list-group-item">Joined: @this.playerStats.RegistrationDate.ToLocalTime().ToShortDateString()</li>
         <li class="list-group-item">Games finished: @this.playerStats.GamesFinished</li>
         <li class="list-group-item">Games left: @this.playerStats.GamesLeft</li>
@@ -51,50 +52,7 @@
 
     if (ownPage)
     {
-        @if (this.friendRequests.Count > 0 || this.sentFriendRequests.Count > 0)
-        {
-            <h3 class="mt-4">Friend requests <span class="badge badge-danger">@this.friendRequests.Count</span></h3>
-            <ul class="list-group">
-                @foreach (var requester in this.friendRequests)
-                {
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span class="align-self-center">
-                            @requester
-                        </span>
-                        <div>
-                            <button class="btn btn-success" @onclick="async () => await this.AcceptFriendRequestAsync(requester)">Accept</button>
-                            <button class="btn btn-outline-danger" @onclick="async () => await this.DismissFriendRequestAsync(requester)">Dissmis</button>
-                        </div>
-                    </li>
-                }
-                @foreach (var receiver in this.sentFriendRequests)
-                {
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span class="align-self-center">
-                            @receiver
-                        </span>
-                        <div>
-                            <button class="btn btn-outline-primary" disabled>Pending</button>
-                            <button class="btn btn-outline-danger">Cancel</button>
-                        </div>
-                    </li>
-                }
-            </ul>
-        }
-        <h3 class="mt-3">Friends <span class="badge badge-info">@this.friends.Count</span></h3>
-        <ul class="list-group">
-            @if (this.friends.Count > 0)
-            {
-                @foreach (var friend in this.friends)
-                {
-                    <li class="list-group-item">@friend</li>
-                }
-            }
-            else
-            {
-                <li class="list-group-item">No friends.</li>
-            }
-        </ul>
+        <Friends Username="@this.Username" />
     }
 }
 else
@@ -110,9 +68,6 @@ else
     private Data.PlayerStats playerStats;
     private bool areFriends = false;
     private bool requestSent = false;
-    private HashSet<string> friends = new HashSet<string>();
-    private HashSet<string> friendRequests = new HashSet<string>();
-    private HashSet<string> sentFriendRequests = new HashSet<string>();
 
     protected override void OnParametersSet()
     {
@@ -130,13 +85,7 @@ else
     {
         this.playerStats = this.statsService.GetPlayerStatsByUsername(this.Username);
         this.playerExists = this.playerStats != null;
-        if (this.playerExists && this.currentUserService.Username.ToLower() == this.Username.ToLower())
-        {
-            this.friends = this.friendsService.GetPlayerFriendsUsernames(this.currentUserService.UserId).ToHashSet();
-            this.friendRequests = this.friendsService.GetPlayerFriendRequestsUsernames(this.currentUserService.UserId).ToHashSet();
-            this.sentFriendRequests = this.friendsService.GetPendingPlayerFriendRequestsUsernames(this.currentUserService.UserId).ToHashSet();
-        }
-        else
+        if (this.playerExists && this.currentUserService.Username.ToLower() != this.Username.ToLower())
         {
             this.requestSent = this.friendsService.CheckRequestExists(this.currentUserService.Username, this.Username);
             this.areFriends = this.friendsService.CheckFriends(this.currentUserService.Username, this.Username);
@@ -158,23 +107,6 @@ else
         }
 
         this.requestSent = true;
-        this.StateHasChanged();
-    }
-
-    private async Task AcceptFriendRequestAsync(string senderUsername)
-    {
-        await this.friendsService.AcceptFriendRequestAsync(senderUsername, this.Username);
-        this.friends = this.friendsService.GetPlayerFriendsUsernames(this.currentUserService.UserId).ToHashSet();
-        this.friendRequests = this.friendsService.GetPlayerFriendRequestsUsernames(this.currentUserService.UserId).ToHashSet();
-        this.notifyService.InvokeByPlayer(this.currentUserService.InstanceId, "FriendRequest");
-        this.StateHasChanged();
-    }
-
-    private async Task DismissFriendRequestAsync(string senderUsername)
-    {
-        await this.friendsService.DismissFriendRequestAsync(senderUsername, this.Username);
-        this.friendRequests = this.friendsService.GetPlayerFriendRequestsUsernames(this.currentUserService.UserId).ToHashSet();
-        this.notifyService.InvokeByPlayer(this.currentUserService.InstanceId, "FriendRequest");
         this.StateHasChanged();
     }
 }

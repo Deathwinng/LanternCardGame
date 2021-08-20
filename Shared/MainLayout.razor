@@ -42,7 +42,6 @@
     private IList<NotificationModel> notifications = new List<NotificationModel>();
     private ICollection<PlayerModel> onlinePlayers = new List<PlayerModel>();
     private bool duplicatePlayer = false;
-    private IList<string[]> subscriptionsInfo = new List<string[]>();
     private PlayerModel player;
     private string duplicatePlayerNotificationId;
     private int friendRequests = 0;
@@ -50,6 +49,12 @@
     protected override async Task OnInitializedAsync()
     {
         await this.currentUserService.Initialize();
+        if (this.currentUserService.IsAuthenticated)
+        {
+            this.player = this.playersService.PlayerConnected(this.currentUserService.UserId, this.currentUserService.Username);
+            this.currentUserService.InstanceId = this.player.InstanceId;
+        }
+
         await base.OnInitializedAsync();
     }
 
@@ -64,7 +69,7 @@
                     AutoReset = false,
                 };
 
-                timer.Elapsed += async (Object source, ElapsedEventArgs e) =>
+                timer.Elapsed += async (source, e) =>
                 {
                     this.notificationService.RemovePlayerNotification(notification.Id);
                     this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
@@ -80,43 +85,57 @@
         }
         else if (this.currentUserService.IsAuthenticated)
         {
-            this.player = this.playersService.PlayerConnected(this.currentUserService.UserId, this.currentUserService.Username);
-            this.currentUserService.InstanceId = this.player.InstanceId;
             this.friendRequests = this.friendsService.GetPlayerFriendRequestsUsernames(this.player.Id)?.Count() ?? 0;
 
-            this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "ReceiveNotification", async () =>
+            this.notifyService.Subscribe(this.player.InstanceId, "ReceiveNotification", async () =>
             {
                 this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
                 await InvokeAsync(this.StateHasChanged);
-            }));
+            });
 
-            this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "FriendRequest", async () =>
+            this.notifyService.Subscribe(this.player.InstanceId, "FriendRequest", async () =>
             {
                 this.friendRequests = this.friendsService.GetPlayerFriendRequestsUsernames(this.player.Id)?.Count() ?? 0;
                 await this.InvokeAsync(this.StateHasChanged);
-            }));
+            });
 
-            this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "UpdateOnlinePlayers", async () => await UpdateOnlinePlayersAsync()));
-
-            this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "DuplicateUser", this.DuplicateUser));
-
-            this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "DuplicateUserCleared", () =>
+            this.notifyService.Subscribe(this.player.InstanceId, "UpdateOnlinePlayers", async () => await UpdateOnlinePlayersAsync());
+            this.notifyService.Subscribe(this.player.InstanceId, "DuplicateUser", this.DuplicateUser);
+            this.notifyService.Subscribe(this.player.InstanceId, "DuplicateUserCleared", () =>
             {
                 this.duplicatePlayer = false;
                 this.notificationService.RemovePlayerNotification(this.duplicatePlayerNotificationId);
                 this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
                 this.NavigationManager.NavigateTo("/", true);
-            }));
+            });
 
             this.onlinePlayers = this.playersService.GetPlayersOnline().ToHashSet();
             this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
+
+            var friends = this.friendsService.GetPlayerFriends(this.player.Id);
+            foreach (var friend in friends)
+            {
+                if (this.playersService.IsPlayerOnline(friend.Id))
+                {
+                    var player = this.playersService.GetPlayerById(friend.Id);
+                    this.notificationService.AddPlayerNotification(player.InstanceId, $"Friend \"{this.player.Username}\" is now online!", 5);
+                    this.notifyService.InvokeByPlayer(player.InstanceId, "ReceiveNotification");
+                    this.notifyService.InvokeByPlayer(player.InstanceId, "UpdateFriendsInfo");
+                }
+            }
+
+            if (this.playersService.IsDuplicatePlayer(this.player.Id, this.player.InstanceId))
+            {
+                this.DuplicateUser();
+            }
+
             this.StateHasChanged();
         }
 
         await base.OnAfterRenderAsync(firstRender);
     }
 
-    public void DeleteNotification(string notificationId, double dissmissTimerInSeconds = 0)
+    public void DeleteNotification(string notificationId)
     {
         this.notificationService.RemovePlayerNotification(notificationId);
         this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
@@ -144,9 +163,17 @@
             this.playersService.PlayerDisconnected(this.currentUserService.InstanceId);
             this.notifyService.Unsubscribe(this.currentUserService.InstanceId);
             this.notificationService.RemoveAllPlayerNotifications(this.currentUserService.InstanceId);
-            foreach (var subscriptionInfo in subscriptionsInfo)
+
+            var friends = this.friendsService.GetPlayerFriends(this.player.Id);
+            foreach (var friend in friends)
             {
-                this.notifyService.Unsubscribe(subscriptionInfo[0], subscriptionInfo[1]);
+                if (this.playersService.IsPlayerOnline(friend.Id))
+                {
+                    var player = this.playersService.GetPlayerById(friend.Id);
+                    //this.notificationService.AddPlayerNotification(player.InstanceId, $"Friend \"{this.player.Username}\" is now online!", 5);
+                    //this.notifyService.InvokeByPlayer(player.InstanceId, "ReceiveNotification");
+                    this.notifyService.InvokeByPlayer(player.InstanceId, "UpdateFriendsInfo");
+                }
             }
         }
     }

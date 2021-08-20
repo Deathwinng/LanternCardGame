@@ -96,11 +96,11 @@ namespace LanternCardGame.Services
                 gameInstance.AddToPlayerPoints(playerId, this.CalculatePlayerPoints(gameId, playerId));
                 if (gameInstance.AllPlayersReady)
                 {
+                    gameInstance.StopTurnTimer();
+                    gameInstance.StopArragingTimer();
                     if (gameInstance.AreMaxPointsReached)
                     {
                         gameInstance.ResetPlayersReady();
-                        gameInstance.StopTurnTimer();
-                        gameInstance.DisposeTurnTimer();
                         this.InvokeUpdateGameInfo(gameId);
                         var playerPoints = gameInstance.GetAllPlayerPoints().OrderBy(kvp => kvp.Value);
                         var firstPlayerInstanceId = this.playersService.GetPlayerById(playerPoints.First().Key).InstanceId;
@@ -287,22 +287,19 @@ namespace LanternCardGame.Services
                 var pairGroups = this.GetPairGroups(playerCards.ToList());
                 var canLightUp = this.CheckIfPlayerCanLightUp(gameId, playerId, pairGroups);
 
+
                 if (canLightUp)
                 {
                     var player = this.playersService.GetPlayerById(playerId);
                     gameInstance.RoundWinner = player.Username;
                     this.notifyService.InvokeByPlayer(player.InstanceId, "RoundWon");
-                    this.notifyService.InvokeByGroupExcept(gameId, player.InstanceId, "RoundOver");
+                    this.EndRound(gameId);
                     gameInstance.PlayerReady(playerId);
                     gameInstance.SubstractFromPlayerPoints(playerId, 10);
-                    gameInstance.StopTurnTimer();
-                    gameInstance.RoundOver = true;
                 }
                 else if (!drawDeckAllowed)
                 {
-                    this.notifyService.InvokeByGroup(gameId, "RoundOver");
-                    gameInstance.StopTurnTimer();
-                    gameInstance.RoundOver = true;
+                    this.EndRound(gameId);
                 }
                 else
                 {
@@ -316,9 +313,11 @@ namespace LanternCardGame.Services
 
         public void EndRound(string gameId)
         {
+            this.DoesGameInstanceExists(gameId);
             this.notifyService.InvokeByGroup(gameId, "RoundOver");
             var gameInstance = this.GetGameInstance(gameId);
             gameInstance.StopTurnTimer();
+            gameInstance.RestartArragingTimer();
             gameInstance.RoundOver = true;
         }
 
@@ -374,6 +373,7 @@ namespace LanternCardGame.Services
                 if (gameInstance.AllPlayersLeft)
                 {
                     gameInstance.DisposeTurnTimer();
+                    gameInstance.DisposeArragingTimer();
                     this.gameInstances.Remove(gameInstance);
                 }
             }
@@ -388,6 +388,7 @@ namespace LanternCardGame.Services
                 this.roomService.DeleteRoom(gameId, playerName);
                 var gameInstance = this.GetGameInstance(gameId);
                 gameInstance.DisposeTurnTimer();
+                gameInstance.DisposeArragingTimer();
                 this.gameInstances.Remove(gameInstance);
             }
         }
@@ -602,7 +603,7 @@ namespace LanternCardGame.Services
 
             var players = room.Players;
             var gameInstance = new GameInstance(gameId, players, room.MaxPoints, room.SecondsPerTurn);
-            gameInstance.SetTurnTimerEvent((source, e) =>
+            gameInstance.AddTurnTimerElapsedEvent((source, e) =>
             {
                 var currentPlayer = this.playersService.GetPlayerById(gameInstance.CurrentTurnPlayerId);
                 if (this.GetNumberOfPlayerCards(gameId, currentPlayer.Id) == 9)
@@ -628,6 +629,11 @@ namespace LanternCardGame.Services
                 }
 
                 this.notifyService.InvokeByPlayer(currentPlayer.InstanceId, "ReceiveNotification");
+            });
+
+            gameInstance.AddArragingTimerElapsedEvent((source, e) =>
+            {
+                this.notifyService.InvokeByGroup(gameId, "ForceFinishAarraging");
             });
 
             this.gameInstances.Add(gameInstance);

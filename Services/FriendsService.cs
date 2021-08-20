@@ -1,5 +1,4 @@
 ﻿using LanternCardGame.Data;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -32,7 +31,7 @@ namespace LanternCardGame.Services
             var userFriend = this.dbContext.UserFriends.FirstOrDefault(
                 x => x.User.UserName == senderUsername &&
                 x.FriendUser.UserName == receiverUsername &&
-                x.Accepted == false);
+                !x.Accepted);
 
             if (userFriend == null)
             {
@@ -48,7 +47,7 @@ namespace LanternCardGame.Services
             var userFriend = this.dbContext.UserFriends.FirstOrDefault(
                 x => x.User.UserName == senderUsername &&
                 x.FriendUser.UserName == receiverUsername &&
-                x.Accepted == false);
+                !x.Accepted);
 
             if (userFriend == null)
             {
@@ -57,6 +56,24 @@ namespace LanternCardGame.Services
 
             this.dbContext.Remove(userFriend);
             await this.dbContext.SaveChangesAsync();
+        }
+
+        public async Task RemoveFriend(string username1, string username2)
+        {
+            var userFriend = this.dbContext.UserFriends.FirstOrDefault(
+                x =>
+                ((x.User.UserName == username1 && x.FriendUser.UserName == username2) ||
+                (x.User.UserName == username2 && x.FriendUser.UserName == username1)) &&
+                x.Accepted);
+
+            if (userFriend == null)
+            {
+                return;
+            }
+
+            this.dbContext.Remove(userFriend);
+            await this.dbContext.SaveChangesAsync();
+
         }
 
         public bool CheckRequestExists(string username1, string username2)

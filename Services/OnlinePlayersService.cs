@@ -1,9 +1,7 @@
 ﻿using LanternCardGame.Models;
 using LanternCardGame.Shared.Enums;
-using Microsoft.JSInterop;
 using System.Collections.Generic;
 using System.Linq;
-using System.Timers;
 
 namespace LanternCardGame.Services
 {
@@ -50,7 +48,7 @@ namespace LanternCardGame.Services
             {
                 var player = new PlayerModel(playerId, playerUsername);
                 this.onlinePlayers.Add(player);
-                if (!IsDuplicatePlayer(player.Id, player.InstanceId))
+                if (!this.IsDuplicatePlayer(player.Id, player.InstanceId))
                 {
                     this.notificationService.AddPlayerNotification(player.InstanceId, "You are now online!", 2);
                     this.notifyService.InvokeByPlayer(player.InstanceId, "ReceiveNotification");
@@ -75,7 +73,7 @@ namespace LanternCardGame.Services
                 {
                     this.onlinePlayers.Remove(player);
                     this.notifyService.Unsubscribe(player.InstanceId);
-                    if (IsDuplicatePlayer(player.Id, playerInstanceId))
+                    if (this.IsDuplicatePlayer(player.Id, playerInstanceId))
                     {
                         var duplicatePlayer = this.onlinePlayers.FirstOrDefault(x => x.Id == player.Id && x.InstanceId != player.InstanceId && x.PlayerStatus == PlayerStatus.Duplicate);
 

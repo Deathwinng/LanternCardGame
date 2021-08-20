@@ -38,7 +38,7 @@
                   _ => null
               })" />
         }
-        <div class="card-pair pair-id-@this.PairId"></div>
+        <div class="card-pair pair-id-@this.PairId @(this.PairCount < 3 ? "thin" : null)"></div>
     }
 </div>
 
@@ -63,4 +63,7 @@
 
     [Parameter]
     public int PairId { get; set; } = -1;
+
+    [Parameter]
+    public int PairCount { get; set; } = 0;
 }

@@ -1,0 +1,60 @@
+﻿@inject NavigationManager navigationManager
+@inject OnlinePlayersService playerService
+@inject GameRoomsService roomService
+@inject CurrentUserService userService
+@using LanternCardGame.Shared.Enums
+
+<li class="list-group-item d-flex justify-content-between">
+    <span class="align-self-center">
+        @FriendUsername
+        @if (this.FriendStatus != null)
+        {
+            <span class="text-muted">
+                @(this.FriendStatus switch
+                    {
+                        PlayerStatus.InGame => " - Playing.",
+                        PlayerStatus.InRoom => " - In a room.",
+                        _ => null
+                    })
+            </span>
+        }
+    </span>
+    <div>
+        @if (this.FriendStatus == PlayerStatus.InRoom)
+        {
+            <button class="btn btn-outline-success mr-3"
+                    @onclick='this.JoinFriendsRoom'>
+                Join
+            </button>
+        }
+        <button class="btn btn-outline-primary"
+                @onclick='() => this.navigationManager.NavigateTo($"/user/{FriendUsername}")'>
+            Info
+        </button>
+        <button class="btn btn-outline-danger"
+                @onclick="this.RemoveFriend">
+            Remove
+        </button>
+    </div>
+</li>
+
+@code {
+    [Parameter]
+    public string FriendUsername { get; set; }
+
+    [Parameter]
+    public PlayerStatus? FriendStatus { get; set; }
+
+    [Parameter]
+    public Action RemoveFriend { get; set; }
+
+    private void JoinFriendsRoom()
+    {
+        var player = this.playerService.GetPlayerByUsername(this.FriendUsername);
+        var joined = this.roomService.AddPlayerToRoom(this.userService.UserId, player.RoomId);
+        if (joined)
+        {
+            this.navigationManager.NavigateTo($"/rooms/{player.RoomId}");
+        }
+    }
+}
