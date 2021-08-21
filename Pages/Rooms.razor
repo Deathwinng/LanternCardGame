@@ -33,7 +33,7 @@
         </tr>
     </thead>
     <tbody>
-        @if (rooms.Count == 0)
+        @if (this.rooms.Count == 0)
         {
             <tr class="d-md-table-row">
                 <td>
@@ -43,25 +43,27 @@
         }
         else
         {
-            foreach (var room in rooms)
+            foreach (var room in this.rooms)
             {
-    <tr class="d-md-table-row">
-        <td>@(string.IsNullOrWhiteSpace(room.Name) ? "(No name)" : room.Name)</td>
-        <td>@room.PlayerCount / @room.MaxPlayers </td>
-        <td>@room.MaxPoints </td>
-        <td>@room.SecondsPerTurn </td>
-        <td>
-            <button class="btn btn-primary w-100" disabled="@(room.PlayerCount == room.MaxPlayers)" @onclick="() => JoinRoom(room.Id)">Join</button>
-        </td>
-    </tr>
+                <tr class="d-md-table-row">
+                    <td>@(string.IsNullOrWhiteSpace(room.Name) ? "(No name)" : room.Name)</td>
+                    <td>@room.PlayerCount / @room.MaxPlayers</td>
+                    <td>@room.MaxPoints</td>
+                    <td>@room.SecondsPerTurn</td>
+                    <td>
+                        <button class="btn btn-primary w-100"
+                                disabled="@(room.PlayerCount >= room.MaxPlayers)"
+                                @onclick="() => JoinRoom(room.Id)">
+                            Join
+                        </button>
+                    </td>
+                </tr>
             }
         }
     </tbody>
 </table>
 
 @code {
-    //[CascadingParameter]
-    //protected HubConnection hubConnection { get; set; }
     ICollection<GameRoomModel> rooms;
     private string[] subscriptionInfo;
 
@@ -89,7 +91,7 @@
 
     public async Task RefreshRoomsAsync()
     {
-        rooms = roomService.GetAllRoomsNotInGame().ToHashSet();
+        this.rooms = roomService.GetAllRoomsNotInGame().ToHashSet();
         await this.InvokeAsync(this.StateHasChanged);
     }
 
@@ -98,7 +100,7 @@
         var joined = roomService.AddPlayerToRoom(userService.UserId, roomId);
         if (joined)
         {
-            navManager.NavigateTo($"/rooms/{roomId}");
+            this.navManager.NavigateTo($"/rooms/{roomId}");
         }
     }
 

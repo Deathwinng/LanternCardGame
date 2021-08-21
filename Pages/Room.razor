@@ -42,8 +42,30 @@
     <div class="mb-3">
         @if (isOwner)
         {
-            <button class="btn btn-outline-success mr-2" disabled="@(this.room?.PlayerCount < this.room?.MaxPlayers ? true : false)" @onclick="this.StartGame">Start Game</button>
-            <button class="btn btn-outline-danger" @onclick=" () => this.DeleteRoom()">Delete Room</button>
+            <button class="btn btn-outline-success mr-2"
+                    disabled="@(this.room?.PlayerCount < this.room?.MaxPlayers)"
+                    @onclick="this.StartGame">
+                Start Game
+            </button>
+            <button class="btn btn-outline-primary mr-2"
+                    disabled="@(!(this.room?.PlayerCount < this.room?.MaxPlayers))"
+                    @onclick="this.ToggleInviteFriends">
+                Invite Friends
+            </button>
+            <button class="btn btn-outline-danger"
+                    @onclick="() => this.DeleteRoom()">
+                Delete Room
+            </button>
+
+            @if (this.inviteToggle)
+            {
+                <div id="invite-list" class="@(this.inviteToggle ? null : "d-none") p-2 position-fixed rounded shadow">
+                    <div class="oi oi-x w-100 text-right mb-3 text-danger" @onclick="this.ToggleInviteFriends"></div>
+                    <FriendInviteList RoomId="@this.RoomId"
+                                      UserId="@this.userService.UserId"
+                                      Username="@this.userService.Username" />
+                </div>
+            }
         }
         else
         {
@@ -81,6 +103,7 @@
     private GameRoomModel room;
     private string status = string.Empty;
     private ICollection<string[]> subscriptionsInfo = new HashSet<string[]>();
+    private bool inviteToggle = false;
 
     protected override void OnInitialized()
     {
@@ -166,6 +189,12 @@
         }
 
         await this.InvokeAsync(this.StateHasChanged);
+    }
+
+    private void ToggleInviteFriends()
+    {
+        this.inviteToggle = !this.inviteToggle;
+        //this.StateHasChanged();
     }
 
     public void Dispose()

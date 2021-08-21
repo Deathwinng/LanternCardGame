@@ -1,5 +1,6 @@
 ﻿using LanternCardGame.Shared.Enums;
 using System;
+using System.Collections.Generic;
 
 namespace LanternCardGame.Models
 {
@@ -9,10 +10,11 @@ namespace LanternCardGame.Models
             string id,
             string username)
         {
-            Id = id;
-            InstanceId = Guid.NewGuid().ToString();
-            Username = username;
-            PlayerStatus = PlayerStatus.Free;
+            this.Id = id;
+            this.InstanceId = Guid.NewGuid().ToString();
+            this.Username = username;
+            this.PlayerStatus = PlayerStatus.Free;
+            this.RoomInviteIds = new Dictionary<string, string>();
         }
 
         public string Id { get; set; }
@@ -24,5 +26,7 @@ namespace LanternCardGame.Models
         public string RoomId { get; set; }
 
         public PlayerStatus PlayerStatus { get; set; }
+
+        public IDictionary<string, string> RoomInviteIds { get; set; }
     }
 }

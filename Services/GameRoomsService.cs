@@ -32,7 +32,7 @@ namespace LanternCardGame.Services
 
         public ICollection<GameRoomModel> GetAllRooms()
         {
-            return rooms;
+            return this.rooms;
         }
 
         public IEnumerable<GameRoomModel> GetAllRoomsNotInGame()
@@ -59,6 +59,11 @@ namespace LanternCardGame.Services
             DoesRoomExist(roomId);
             var room = GetRoom(roomId);
             return room.Players.Any(x => x.InstanceId == playerInstanceId);
+        }
+
+        public bool IsNameAvailable(string name)
+        {
+            return !this.rooms.Any(x => x.Name == name);
         }
 
         public string CreateNewRoom(string playerId, NewRoomModel roomModel)
@@ -193,9 +198,44 @@ namespace LanternCardGame.Services
             }
         }
 
+        public bool InvitePlayerToRoom(string inviterUsername, string inviteeInstanceId, string roomId)
+        {
+            this.DoesRoomExist(roomId);
+            if (this.IsPlayerInTheRoom(inviteeInstanceId, roomId))
+            {
+                return false;
+            }
+
+            var room = this.GetRoom(roomId);
+            var player = this.playersService.GetPlayerByInstanceId(inviteeInstanceId);
+            if (room.InvitedPlayerIds.Any(x => x == player.Id) || !this.playersService.IsPlayerOnline(player.Id))
+            {
+                return false;
+            }
+
+            room.InvitedPlayerIds.Add(player.Id);
+            player.RoomInviteIds[roomId] = inviterUsername;
+            var owner = this.playersService.GetPlayerById(room.OwnerId);
+            this.notificationService.AddPlayerNotification(
+                inviteeInstanceId,
+                $"\"{owner.Username}\" invited you to play!");
+            this.notifyService.InvokeByPlayer(inviteeInstanceId, "ReceiveNotification");
+            this.notifyService.InvokeByPlayer(inviteeInstanceId, "RoomIvite");
+            return true;
+        }
+
+        public bool RemoveInvite(string playerInstanceId, string roomId)
+        {
+            this.DoesRoomExist(roomId);
+            var room = this.GetRoom(roomId);
+            var player = this.playersService.GetPlayerByInstanceId(playerInstanceId);
+            var playerInviteRemoveSuccess = player.RoomInviteIds.Remove(roomId);
+            return room.InvitedPlayerIds.Remove(player.Id) && playerInviteRemoveSuccess;
+        }
+
         public void AddChatMessageToRoom(string roomId, ChatModel chat)
         {
-            DoesRoomExist(roomId);
+            this.DoesRoomExist(roomId);
             var room = GetRoom(roomId);
             room.ChatList.Add(chat);
             this.notifyService.InvokeByGroup(roomId, "NewChat");
@@ -205,6 +245,11 @@ namespace LanternCardGame.Services
         {
             DoesRoomExist(roomId);
             var room = GetRoom(roomId);
+            if (room.PlayerCount < room.MaxPlayers)
+            {
+                throw new Exception("Not enought players to start game.");
+            }
+
             room.InGame = true;
             foreach (var player in room.Players)
             {
@@ -222,7 +267,7 @@ namespace LanternCardGame.Services
             this.InvokeRefreshRooms();
         }
 
-        public void InvokeRefreshRoom(string roomId)
+        private void InvokeRefreshRoom(string roomId)
         {
             this.notifyService.InvokeByGroup(roomId, "RefreshRoom");
         }

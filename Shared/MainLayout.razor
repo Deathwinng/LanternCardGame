@@ -8,6 +8,7 @@
 @inject OnlinePlayersService playersService
 @inject UserService userService
 @inject NotifyService notifyService
+@inject GameRoomsService roomService
 @inject FriendsService friendsService
 @inject NotificationService notificationService
 @inject CurrentUserService currentUserService
@@ -17,7 +18,8 @@
         <NavMenu ShowNavMenu="!this.duplicatePlayer"
                  OnlinePlayers="this.onlinePlayers"
                  Player="this.player"
-                 FriendRequests="this.friendRequests" />
+                 FriendRequests="this.friendRequests"
+                 InvitesCount="this.player.RoomInviteIds.Count" />
     </div>
 
     <div class="main">
@@ -109,6 +111,11 @@
                 this.NavigationManager.NavigateTo("/", true);
             });
 
+            this.notifyService.Subscribe(this.player.InstanceId, "RoomIvite", async () =>
+            {
+                await this.InvokeAsync(this.StateHasChanged);
+            });
+
             this.onlinePlayers = this.playersService.GetPlayersOnline().ToHashSet();
             this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
 
@@ -163,6 +170,11 @@
             this.playersService.PlayerDisconnected(this.currentUserService.InstanceId);
             this.notifyService.Unsubscribe(this.currentUserService.InstanceId);
             this.notificationService.RemoveAllPlayerNotifications(this.currentUserService.InstanceId);
+
+            foreach (var kvp in this.player.RoomInviteIds)
+            {
+                this.roomService.RemoveInvite(this.player.InstanceId, kvp.Key);
+            }
 
             var friends = this.friendsService.GetPlayerFriends(this.player.Id);
             foreach (var friend in friends)

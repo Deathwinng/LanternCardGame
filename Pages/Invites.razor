@@ -1,0 +1,100 @@
+﻿@page "/user/invites"
+@inject GameRoomsService roomsService
+@inject CurrentUserService userService
+@inject OnlinePlayersService playerService
+@inject NotifyService notifyService
+@inject NavigationManager navManager
+
+<h3>Invites</h3>
+
+<table class="table mt-3">
+    <thead class="thead-light">
+        <tr>
+            <th>Invited by</th>
+            <th>Room name</th>
+            <th>Players</th>
+            <th>Max points</th>
+            <th>Seconds per turn</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (this.rooms.Count == 0)
+        {
+            <tr class="d-md-table-row">
+                <td>
+                    No invites
+                </td>
+            </tr>
+        }
+        else
+        {
+            foreach (var kvp in this.rooms)
+            {
+                var room = kvp.Value;
+                <tr class="d-md-table-row">
+                    <td>@kvp.Key</td>
+                    <td>@(string.IsNullOrWhiteSpace(room.Name) ? "(No name)" : room.Name)</td>
+                    <td>@room.PlayerCount / @room.MaxPlayers</td>
+                    <td>@room.MaxPoints</td>
+                    <td>@room.SecondsPerTurn</td>
+                    <td>
+                        <button class="btn btn-success"
+                                disabled="@(room.PlayerCount >= room.MaxPlayers)"
+                                @onclick="() => Accept(room.Id)">
+                            Accept
+                        </button>
+                        <button class="btn btn-outline-danger"
+                                disabled="@(room.PlayerCount >= room.MaxPlayers)"
+                                @onclick="() => Reject(room.Id)">
+                            Reject
+                        </button>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+@code {
+    IDictionary<string, GameRoomModel> rooms = new Dictionary<string, GameRoomModel>();
+
+    protected override void OnInitialized()
+    {
+        this.RefreshRooms();
+        base.OnInitialized();
+    }
+
+    private void RefreshRooms()
+    {
+        this.rooms.Clear();
+        var player = this.playerService.GetPlayerById(this.userService.UserId);
+        foreach (var kvp in player.RoomInviteIds)
+        {
+            this.rooms[kvp.Value] = this.roomsService.GetRoom(kvp.Key);
+        }
+    }
+
+    private void Accept(string roomId)
+    {
+        var joined = this.roomsService.AddPlayerToRoom(userService.UserId, roomId);
+        if (joined)
+        {
+            var player = this.playerService.GetPlayerById(this.userService.UserId);
+            foreach (var kvp in player.RoomInviteIds)
+            {
+                this.roomsService.RemoveInvite(player.InstanceId, kvp.Key);
+            }
+
+            this.navManager.NavigateTo($"/rooms/{roomId}");
+        }
+    }
+
+    private void Reject(string roomId)
+    {
+        this.roomsService.RemoveInvite(this.userService.InstanceId, roomId);
+        this.notifyService.InvokeByPlayer(this.userService.InstanceId, "RoomIvite");
+        this.RefreshRooms();
+        this.StateHasChanged();
+    }
+}

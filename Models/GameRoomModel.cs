@@ -6,11 +6,12 @@ namespace LanternCardGame.Models
     {
         public GameRoomModel(string id)
         {
-            Id = id;
-            Players = new HashSet<PlayerModel>();
-            ChatList = new HashSet<ChatModel>();
-            InGame = false;
-            InDeveloperMode = false;
+            this.Id = id;
+            this.Players = new HashSet<PlayerModel>();
+            this.ChatList = new HashSet<ChatModel>();
+            this.InvitedPlayerIds = new HashSet<string>();
+            this.InGame = false;
+            this.InDeveloperMode = false;
         }
 
         public string Id { get; }
@@ -34,5 +35,7 @@ namespace LanternCardGame.Models
         public ICollection<PlayerModel> Players { get; set; }
 
         public ICollection<ChatModel> ChatList { get; set; }
+
+        public ICollection<string> InvitedPlayerIds { get; set; }
     }
 }

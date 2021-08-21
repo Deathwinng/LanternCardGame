@@ -53,6 +53,7 @@
 
     private void HandleCreateNewRoom()
     {
+
         var roomId = this.roomsService.CreateNewRoom(this.userService.UserId, this.model);
         this.navManager.NavigateTo($"/rooms/{roomId}");
     }

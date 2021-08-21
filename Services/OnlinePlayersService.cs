@@ -37,9 +37,9 @@ namespace LanternCardGame.Services
             return this.onlinePlayers.FirstOrDefault(x => x.Username == username && x.PlayerStatus != PlayerStatus.Duplicate);
         }
 
-        public PlayerModel GetPlayerByInstanceId(string connectionId)
+        public PlayerModel GetPlayerByInstanceId(string instanceId)
         {
-            return this.onlinePlayers.FirstOrDefault(x => x.InstanceId == connectionId);
+            return this.onlinePlayers.FirstOrDefault(x => x.InstanceId == instanceId);
         }
 
         public PlayerModel PlayerConnected(string playerId, string playerUsername)

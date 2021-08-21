@@ -48,6 +48,16 @@
                                 </NavLink>
                             </li>
 
+
+                            @if (this.InvitesCount > 0)
+                            {
+                                <li class="nav-item px-3 mt-4">
+                                    <NavLink class="nav-link" href="/user/invites">
+                                        <span class="oi oi-warning" aria-hidden="true"></span> Game Invites
+                                        <span class="badge badge-danger ml-2">@this.InvitesCount</span>
+                                    </NavLink>
+                                </li>
+                            }
                             <li class="nav-item px-3 mt-4">
                                 <NavLink class="nav-link" href=@($"/user/{context.User.Identity.Name}")>
                                     <span class="oi oi-person" aria-hidden="true"></span> @context.User.Identity.Name
@@ -108,11 +118,11 @@
                         _ => "Player is free."
                     };
                     <li class="online-player" title=@status>
-                            <span class="player-status @(player.PlayerStatus.ToString().ToLower())"></span>
-                            @player.Username
-                            <a class="player-info" href=@($"/user/{player.Username}") title="Go to user info.">
-                                <span class="oi oi-info"></span>
-                            </a>
+                        <span class="player-status @(player.PlayerStatus.ToString().ToLower())"></span>
+                        @player.Username
+                        <a class="player-info" href=@($"/user/{player.Username}") title="Go to user info.">
+                            <span class="oi oi-info"></span>
+                        </a>
                     </li>
                 }
             </ul>
@@ -126,6 +136,9 @@
 
     [Parameter]
     public ICollection<PlayerModel> OnlinePlayers { get; set; }
+
+    [Parameter]
+    public int InvitesCount { get; set; }
 
     [Parameter]
     public PlayerModel Player { get; set; }

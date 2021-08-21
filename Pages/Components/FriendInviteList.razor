@@ -1,0 +1,66 @@
+﻿@inject FriendsService friendsService
+@inject OnlinePlayersService playersService
+@inject GameRoomsService roomsService
+
+@using LanternCardGame.Shared.Enums
+
+<ul class="list-group list-group-flush">
+    @if (this.availableFriends.Count > 0)
+    {
+        foreach (var friend in this.availableFriends)
+        {
+            var invited = friend.RoomInviteIds.ContainsKey(this.RoomId);
+            <li class="list-group-item d-flex justify-content-between">
+                <span>@friend.Username</span>
+                <button class="btn btn-primary"
+                        disabled="@invited"
+                        @onclick="() => this.Invite(friend.InstanceId)">
+                    @(invited ? "Invited" : "Invite")
+                </button>
+            </li>
+        }
+    }
+    else
+    {
+        <li class="list-group-item text-muted">No available friends</li>
+    }
+</ul>
+
+@code {
+    [Parameter]
+    public string UserId { get; set; }
+
+    [Parameter]
+    public string Username { get; set; }
+
+    [Parameter]
+    public string RoomId { get; set; }
+
+    private List<PlayerModel> availableFriends = new List<PlayerModel>();
+
+    protected override void OnInitialized()
+    {
+        this.RefreshFriends();
+        base.OnInitialized();
+    }
+
+    private void RefreshFriends()
+    {
+        this.availableFriends.Clear();
+        var friends = this.friendsService.GetPlayerFriends(this.UserId);
+        foreach (var friend in friends)
+        {
+            var player = this.playersService.GetPlayerById(friend.Id);
+            if (player?.PlayerStatus == PlayerStatus.Free)
+            {
+                this.availableFriends.Add(player);
+            }
+        }
+    }
+
+    private void Invite(string playerInstanceId)
+    {
+        this.roomsService.InvitePlayerToRoom(this.Username, playerInstanceId, this.RoomId);
+        this.RefreshFriends();
+    }
+}
