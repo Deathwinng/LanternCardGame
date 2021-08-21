@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace LanternCardGame.Models
 {
@@ -24,11 +25,15 @@ namespace LanternCardGame.Models
 
         public int MaxPoints { get; set; }
 
-        public int SecondsPerTurn { get; set; }
+        public TimeSpan TimePerTurn { get; set; }
 
         public bool InGame { get; set; }
 
         public int PlayerCount => Players.Count;
+
+        public bool Private { get; set; }
+
+        public bool JoinUninvited { get; set; }
 
         public bool InDeveloperMode { get; set; }
 

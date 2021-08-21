@@ -10,6 +10,7 @@ namespace LanternCardGame.Pages
         {
             this.NumberOfPlayers = numberOfMinPlayers;
             this.MaxPoints = 100;
+            this.TimerEnabled = true;
             this.SecondsPerTurn = 30;
         }
 
@@ -26,9 +27,15 @@ namespace LanternCardGame.Pages
         [Display(Name = "Maximum number of points")]
         public int MaxPoints { get; set; }
 
+        public bool TimerEnabled { get; set; }
+
         [Range(10, 5 * 60, ErrorMessage = "{0} must be between {1} and {2}.")]
         [Display(Name = "Seconds per turn")]
         public int SecondsPerTurn { get; set; }
+
+        public bool Private { get; set; }
+
+        public bool JoinUninvited { get; set; }
 
         public bool DeveloperMode { get; set; }
     }

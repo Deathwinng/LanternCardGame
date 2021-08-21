@@ -88,7 +88,7 @@ else
         if (this.playerExists && this.currentUserService.Username.ToLower() != this.Username.ToLower())
         {
             this.requestSent = this.friendsService.CheckRequestExists(this.currentUserService.Username, this.Username);
-            this.areFriends = this.friendsService.CheckFriends(this.currentUserService.Username, this.Username);
+            this.areFriends = this.friendsService.CheckFriendsByUsername(this.currentUserService.Username, this.Username);
         }
 
         this.StateHasChanged();

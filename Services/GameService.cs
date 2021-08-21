@@ -602,7 +602,7 @@ namespace LanternCardGame.Services
             }
 
             var players = room.Players;
-            var gameInstance = new GameInstance(gameId, players, room.MaxPoints, room.SecondsPerTurn);
+            var gameInstance = new GameInstance(gameId, players, room.MaxPoints, (int)room.TimePerTurn.TotalSeconds);
             gameInstance.AddTurnTimerElapsedEvent((source, e) =>
             {
                 var currentPlayer = this.playersService.GetPlayerById(gameInstance.CurrentTurnPlayerId);

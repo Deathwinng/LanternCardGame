@@ -178,7 +178,7 @@
 
                         <button @onclick="this.FinishArraging" class="btn btn-outline-primary">
                             Finish
-                            @if (this.room?.SecondsPerTurn > 0)
+                            @if (this.room?.TimePerTurn.TotalSeconds > 0)
                             {
                                 <span class="font-weight-bold">@this.turnTimerCounter</span>
                             }
@@ -281,10 +281,10 @@
                             {
                                 @this.gameInfo?.CurrentTurnPlayerUsername@:'s turn.
                             }
-                            @if (this.room?.SecondsPerTurn > 0)
+                            @if (this.room?.TimePerTurn.TotalSeconds > 0)
                             {
-                                <span id="turn-timer" class="@(this.turnTimerCounter <= 15 ? (this.turnTimerCounter <= 7 ? "text-danger" : "text-warning") : null)">
-                                    @this.turnTimerCounter
+                                <span id="turn-timer" class="@(this.turnTimerCounter <= 15 ? (this.turnTimerCounter <= 7 ? "text-danger" : "text-warning") : (this.myTurn ? "text-primary" : null))">
+                                    @(this.turnTimerCounter < 60 ? this.turnTimerCounter : TimeSpan.FromSeconds(this.turnTimerCounter).ToString(@"m\:ss"))
                                 </span>
                             }
                         </div>
@@ -414,7 +414,7 @@ else
             await this.InvokeAsync(this.StateHasChanged);
         };
 
-        this.turnTimerCounter = this.room?.SecondsPerTurn ?? 0;
+        this.turnTimerCounter = (int?)this.room?.TimePerTurn.TotalSeconds ?? 0;
         this.turnTimer.AutoReset = true;
         this.turnTimer.Elapsed += async (source, e) =>
         {
@@ -435,7 +435,8 @@ else
         if (firstRender)
         {
             this.room = this.roomService.GetRoom(this.GameId);
-            if (this.room == null || (this.room != null && !this.room.Players.Any(x => x.InstanceId == this.userService.InstanceId)))
+            if (this.room == null ||
+                (this.room != null && !this.roomService.IsPlayerInTheRoom(this.userService.InstanceId, this.GameId)))
             {
                 this.navigationManager.NavigateTo("/rooms");
             }
@@ -606,7 +607,7 @@ else
 
     private void RestartTurnTimer()
     {
-        this.turnTimerCounter = this.room.SecondsPerTurn;
+        this.turnTimerCounter = (int)this.room.TimePerTurn.TotalSeconds;
         this.turnTimer.Stop();
         this.turnTimer.Start();
     }

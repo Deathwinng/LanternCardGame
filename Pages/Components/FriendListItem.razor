@@ -51,7 +51,7 @@
     private void JoinFriendsRoom()
     {
         var player = this.playerService.GetPlayerByUsername(this.FriendUsername);
-        var joined = this.roomService.AddPlayerToRoom(this.userService.UserId, player.RoomId);
+        var joined = this.roomService.AddPlayerToRoom(this.userService.UserId, player.RoomId, true);
         if (joined)
         {
             this.navigationManager.NavigateTo($"/rooms/{player.RoomId}");

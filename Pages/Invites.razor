@@ -1,4 +1,5 @@
 ﻿@page "/user/invites"
+@attribute [Authorize]
 @inject GameRoomsService roomsService
 @inject CurrentUserService userService
 @inject OnlinePlayersService playerService
@@ -37,7 +38,7 @@
                     <td>@(string.IsNullOrWhiteSpace(room.Name) ? "(No name)" : room.Name)</td>
                     <td>@room.PlayerCount / @room.MaxPlayers</td>
                     <td>@room.MaxPoints</td>
-                    <td>@room.SecondsPerTurn</td>
+                    <td>@room.TimePerTurn</td>
                     <td>
                         <button class="btn btn-success"
                                 disabled="@(room.PlayerCount >= room.MaxPlayers)"
@@ -77,7 +78,7 @@
 
     private void Accept(string roomId)
     {
-        var joined = this.roomsService.AddPlayerToRoom(userService.UserId, roomId);
+        var joined = this.roomsService.AddPlayerToRoom(userService.UserId, roomId, true);
         if (joined)
         {
             var player = this.playerService.GetPlayerById(this.userService.UserId);

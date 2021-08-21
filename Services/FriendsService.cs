@@ -85,7 +85,16 @@ namespace LanternCardGame.Services
                 !x.Accepted);
         }
 
-        public bool CheckFriends(string username1, string username2)
+        public bool CheckFriendsById(string id1, string id2)
+        {
+            return this.dbContext.UserFriends.Any(
+                x =>
+                ((x.User.Id == id1 && x.FriendUser.Id == id2) ||
+                (x.User.Id == id2 && x.FriendUser.Id == id1)) &&
+                x.Accepted);
+        }
+
+        public bool CheckFriendsByUsername(string username1, string username2)
         {
             return this.dbContext.UserFriends.Any(
                 x =>

@@ -10,9 +10,10 @@
 @inject NavigationManager navManager
 @inject CurrentUserService userService
 @inject GameService gameService
+@inject FriendsService friendsService
 @inject NotifyService notifyService
 
-@if (this.room != null)
+@if (this.room != null && this.roomsService.IsPlayerInTheRoom(this.userService.InstanceId, this.RoomId))
 {
     <Title Value="@($"Room {this.room.Name}")"></Title>
 
@@ -84,13 +85,9 @@
         }
     </div>
     <br />
-
-    if (this.roomsService.IsPlayerInTheRoom(this.userService.InstanceId, this.RoomId))
-    {
-        <div id="chat">
-            <ChatComponent RoomId="@this.RoomId" />
-        </div>
-    }
+    <div id="chat">
+        <ChatComponent RoomId="@this.RoomId" />
+    </div>
 
     @*<div class="text-light">Navigatin elsewere will @(this.room.OwnerId == this.userService.UserId ? "delete" : "make you leave") the room!</div>*@
 }
@@ -108,7 +105,10 @@
     protected override void OnInitialized()
     {
         this.room = this.roomsService.GetRoom(this.RoomId);
-        if (this.room == null || (this.room != null && this.room.InGame))
+        var isOwner = this.userService.UserId == this.room?.OwnerId;
+        if (this.room == null ||
+            this.room.InGame ||
+            !this.roomsService.IsPlayerInTheRoom(this.userService.InstanceId, this.RoomId))
         {
             this.navManager.NavigateTo("/rooms", true);
         }

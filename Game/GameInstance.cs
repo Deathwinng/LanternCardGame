@@ -17,6 +17,7 @@ namespace LanternCardGame.Game
         private readonly int maxPoints;
         private readonly Timer turnTimer;
         private readonly Timer arragingTimer;
+        private readonly bool timersEnabled;
         private int roundsPlayed;
         private int rotationsPerRoundsPlayed;
         private readonly IDictionary<string, PlayerDeck> playersDecks;
@@ -35,14 +36,18 @@ namespace LanternCardGame.Game
             this.GameId = gameId;
             this.players = players.Shuffle().ToList();
             this.maxPoints = maxPoints;
-            this.turnTimer = new Timer(secondsPerTurn * 1000)
+            this.timersEnabled = secondsPerTurn > 0;
+            if (this.timersEnabled)
             {
-                AutoReset = false
-            };
-            this.arragingTimer = new Timer(secondsPerTurn * 1000)
-            {
-                AutoReset = false
-            };
+                this.turnTimer = new Timer(secondsPerTurn * 1000)
+                {
+                    AutoReset = false
+                };
+                this.arragingTimer = new Timer(secondsPerTurn * 1000)
+                {
+                    AutoReset = false
+                };
+            }
 
             this.deck = new Deck();
             this.emptyDeck = new EmptyDeck();
@@ -289,12 +294,22 @@ namespace LanternCardGame.Game
 
         public void RestartTurnTimer()
         {
+            if (!this.timersEnabled)
+            {
+                return;
+            }
+
             this.turnTimer.Stop();
             this.turnTimer.Start();
         }
 
         public void StopTurnTimer()
         {
+            if (!this.timersEnabled)
+            {
+                return;
+            }
+
             this.turnTimer.Stop();
         }
 
@@ -305,22 +320,42 @@ namespace LanternCardGame.Game
 
         public void AddTurnTimerElapsedEvent(ElapsedEventHandler eventHandler)
         {
+            if (!this.timersEnabled)
+            {
+                return;
+            }
+
             this.turnTimer.Elapsed += eventHandler;
         }
 
         public void RemoveTurnTimerElapsedEvent(ElapsedEventHandler eventHandler)
         {
+            if (!this.timersEnabled)
+            {
+                return;
+            }
+
             this.turnTimer.Elapsed -= eventHandler;
         }
 
         public void RestartArragingTimer()
         {
+            if (!this.timersEnabled)
+            {
+                return;
+            }
+
             this.arragingTimer.Stop();
             this.arragingTimer.Start();
         }
 
         public void StopArragingTimer()
         {
+            if (!this.timersEnabled)
+            {
+                return;
+            }
+
             this.arragingTimer.Stop();
         }
 
@@ -331,11 +366,21 @@ namespace LanternCardGame.Game
 
         public void AddArragingTimerElapsedEvent(ElapsedEventHandler eventHandler)
         {
+            if (!this.timersEnabled)
+            {
+                return;
+            }
+
             this.arragingTimer.Elapsed += eventHandler;
         }
 
         public void RemoveArragingTimerElapsedEvent(ElapsedEventHandler eventHandler)
         {
+            if (!this.timersEnabled)
+            {
+                return;
+            }
+
             this.arragingTimer.Elapsed -= eventHandler;
         }
 

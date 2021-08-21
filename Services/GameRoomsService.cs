@@ -22,7 +22,7 @@ namespace LanternCardGame.Services
             this.notifyService = notifyService;
             this.playersService = playersService;
             this.notificationService = notificationService;
-            rooms = new HashSet<GameRoomModel>();
+            this.rooms = new HashSet<GameRoomModel>();
         }
 
         public GameRoomModel GetRoom(string roomId)
@@ -37,7 +37,10 @@ namespace LanternCardGame.Services
 
         public IEnumerable<GameRoomModel> GetAllRoomsNotInGame()
         {
-            return this.rooms.Where(x => x.InGame == false && x.InDeveloperMode == false);
+            return this.rooms.Where(
+                x => !x.InGame &&
+                !x.InDeveloperMode &&
+                !x.Private);
         }
 
         public ICollection<PlayerModel> GetAllPlayersInRoom(string roomId)
@@ -74,13 +77,15 @@ namespace LanternCardGame.Services
                 throw new Exception("Player not found.");
             }
 
-            var room = new GameRoomModel(GetNewUniqueRoomId())
+            var room = new GameRoomModel(this.GetNewUniqueRoomId())
             {
                 Name = roomModel.Name,
                 MaxPlayers = roomModel.NumberOfPlayers,
                 OwnerId = playerId,
                 MaxPoints = roomModel.MaxPoints,
-                SecondsPerTurn = roomModel.SecondsPerTurn,
+                TimePerTurn = roomModel.TimerEnabled ? TimeSpan.FromSeconds(roomModel.SecondsPerTurn) : TimeSpan.FromSeconds(0),
+                Private = roomModel.Private,
+                JoinUninvited = roomModel.JoinUninvited,
                 InDeveloperMode = roomModel.DeveloperMode,
             };
 
@@ -89,7 +94,11 @@ namespace LanternCardGame.Services
             room.Players.Add(player);
             this.rooms.Add(room);
             this.notifyService.AddToGroup(player.InstanceId, room.Id);
-            InvokeRefreshRooms();
+            if (!room.Private)
+            {
+                this.InvokeRefreshRooms();
+            }
+
             this.notifyService.InvokeAll("UpdateOnlinePlayers");
             return room.Id;
         }
@@ -126,12 +135,27 @@ namespace LanternCardGame.Services
             InvokeRefreshRooms();
         }
 
-        public bool AddPlayerToRoom(string playerId, string roomId)
+        public bool AddPlayerToRoom(string playerId, string roomId, bool isFriend = false)
         {
             DoesRoomExist(roomId);
             var room = GetRoom(roomId);
             if (!room.Players.Any(x => x.Id == playerId) && room.PlayerCount < room.MaxPlayers)
             {
+                if (room.Private)
+                {
+                    if (!isFriend ||
+                        (isFriend &&
+                        !room.JoinUninvited &&
+                        !room.InvitedPlayerIds.Any(x => x == playerId)))
+                    {
+                        return false;
+                    }
+                }
+                if (room.InvitedPlayerIds.Any(x => x == playerId))
+                {
+                    this.RemoveInvite(playerId, roomId);
+                }
+
                 var player = this.playersService.GetPlayerById(playerId);
                 player.RoomId = roomId;
                 player.PlayerStatus = PlayerStatus.InRoom;
@@ -224,11 +248,11 @@ namespace LanternCardGame.Services
             return true;
         }
 
-        public bool RemoveInvite(string playerInstanceId, string roomId)
+        public bool RemoveInvite(string playerId, string roomId)
         {
             this.DoesRoomExist(roomId);
             var room = this.GetRoom(roomId);
-            var player = this.playersService.GetPlayerByInstanceId(playerInstanceId);
+            var player = this.playersService.GetPlayerById(playerId);
             var playerInviteRemoveSuccess = player.RoomInviteIds.Remove(roomId);
             return room.InvitedPlayerIds.Remove(player.Id) && playerInviteRemoveSuccess;
         }

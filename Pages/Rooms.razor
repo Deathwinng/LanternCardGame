@@ -4,8 +4,8 @@
 @using Microsoft.AspNetCore.Components.Web.Extensions.Head
 @implements IDisposable
 
-
 @attribute [Authorize]
+
 @inject GameRoomsService roomService
 @inject CurrentUserService userService
 @inject OnlinePlayersService playerService
@@ -28,7 +28,7 @@
             <th>Name</th>
             <th>Players</th>
             <th>Max Points</th>
-            <th>Seconds per turn</th>
+            <th>Time per turn</th>
             <th></th>
         </tr>
     </thead>
@@ -49,7 +49,7 @@
                     <td>@(string.IsNullOrWhiteSpace(room.Name) ? "(No name)" : room.Name)</td>
                     <td>@room.PlayerCount / @room.MaxPlayers</td>
                     <td>@room.MaxPoints</td>
-                    <td>@room.SecondsPerTurn</td>
+                    <td>@(room.TimePerTurn.TotalSeconds > 0 ? $"{room.TimePerTurn.ToString(@"m\:ss")} min" : "Unlimited")</td>
                     <td>
                         <button class="btn btn-primary w-100"
                                 disabled="@(room.PlayerCount >= room.MaxPlayers)"

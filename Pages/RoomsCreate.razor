@@ -34,9 +34,30 @@
     </div>
     <div class="input-group mb-2">
         <div class="input-group-prepend">
-            <span class="input-group-text">Seconds per turn:</span>
+            <span class="input-group-text">Enable turn timer:</span>
         </div>
-        <InputNumber @bind-Value="@this.model.SecondsPerTurn" class="form-control" min="10" max="@(5 * 60)" />
+        <InputCheckbox @bind-Value="@this.model.TimerEnabled" class="form-control" />
+    </div>
+    <div class="input-group mb-2">
+        <div class="input-group-prepend">
+            <span class="input-group-text">Time per turn:</span>
+        </div>
+        <InputNumber disabled="@(!this.model.TimerEnabled)" @bind-Value="@this.model.SecondsPerTurn" class="form-control" min="10" max="@(5 * 60)" />
+        <div class="input-group-append">
+            <span class="input-group-text">seconds</span>
+        </div>
+    </div>
+    <div class="input-group mb-2">
+        <div class="input-group-prepend">
+            <span class="input-group-text">Private room:</span>
+        </div>
+        <InputCheckbox @bind-Value="@this.model.Private" class="form-control" />
+    </div>
+    <div class="input-group mb-2">
+        <div class="input-group-prepend">
+            <span class="input-group-text">Allow friends to join uninvited:</span>
+        </div>
+        <InputCheckbox disabled="@(!this.model.Private)" @bind-Value="@this.model.JoinUninvited" class="form-control" />
     </div>
 
     <button class="btn btn-outline-primary">Create new room</button>
@@ -53,7 +74,6 @@
 
     private void HandleCreateNewRoom()
     {
-
         var roomId = this.roomsService.CreateNewRoom(this.userService.UserId, this.model);
         this.navManager.NavigateTo($"/rooms/{roomId}");
     }
