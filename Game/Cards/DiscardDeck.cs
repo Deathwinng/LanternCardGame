@@ -3,14 +3,14 @@ using System.Linq;
 
 namespace LanternCardGame.Game.Cards
 {
-    public class EmptyDeck : BaseDeck
+    public class DiscardDeck : BaseDeck
     {
-        public EmptyDeck()
+        public DiscardDeck()
             : base()
         {
         }
 
-        public EmptyDeck(Card card)
+        public DiscardDeck(Card card)
             : this()
         {
             allCards.Add(card);

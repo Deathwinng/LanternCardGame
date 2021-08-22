@@ -21,13 +21,13 @@
 {
     <Title Value="Playing Lantern Card Game"></Title>
 
-    @if (this.developerMode && this.room.PlayerCount == 1)
+    @if (this.developerMode && this.room?.PlayerCount == 1)
     {
         <span>DEVELOPER MODE</span>
         <div>
             @foreach (var cards in this.allCards)
             {
-                <div style="display: flex; ">
+                <div class="d-flex">
                     @foreach (var card in cards)
                     {
                         <CardComponent OnClick="() => DrawAny(card.Id)" Card="card" />
@@ -43,7 +43,7 @@
                 <button class="btn btn-primary" @onclick="SortByType">Sort by Numbers</button>
             </div>
         </div>
-        <div class="player-deck" style="display: flex; margin-bottom: 20px; justify-content: center;">
+        <div class="player-deck d-flex justify-content-center">
             @foreach (var card in this.playerCards)
             {
                 <CardComponent OnClick="() => this.PlayersCardsClickHandler(card.Id)"
@@ -66,7 +66,7 @@
         </style>
         <Title Value="@($"Room {this.room.Name}")"></Title>
     }
-    else
+    else if (this.room != null)
     {
         <div id="leave-game-overlay" class="@(this.leavingGamePopup ? "show" : "hide")">
             <div id="leave-game-ui" class="rounded">
@@ -115,7 +115,7 @@
                 {
                     messageHeadline = "Game over!";
                     var lastPlayers = this.gameInfo.PlayersPoints
-                        .Where(x => x.Value >= this.room.MaxPoints)
+                        .Where(x => x.Value >= this.room?.MaxPoints)
                         .OrderByDescending(kvp => kvp.Value)
                         .Select(kvp => kvp.Key);
                     message = $"Points reached by {string.Join(", ", lastPlayers)}.";
@@ -224,11 +224,17 @@
                     {
                         <div>
                             <div id="player-@kvp.Key" class="oposing-player-deck">
-                                @{
+                                @if (kvp.Value == 0)
+                                {
+                                    <CardComponent IsMini="true" />
+                                }
+                                else
+                                {
                                     @for (int i = 0; i < kvp.Value; i++)
                                     {
                                         <CardBackComponent IsMini="true" @key="i" />
-                                    }}
+                                    }
+                                }
                             </div>
                             <div class="oposing-player-name
                             @(this.gameInfo.CurrentTurnPlayerUsername == kvp.Key ? "highlighted" : null)">
@@ -241,7 +247,7 @@
                 <section id="middle-section">
                     <div id="game-info-wrapper" class="rounded-right">
                         <div id="game-info-toggle" class="rounded@(this.infoCollapsed ? "-right collapsed" : null)" @onclick="this.ToggleInfo">
-                            <span class="oi @(this.infoCollapsed ? "oi-expand-left" : "oi-expand-right")"></span>
+                            <span class="oi @(this.infoCollapsed ? "oi-list" : "oi-expand-right")"></span>
                         </div>
                         <div id="game-info" class="rounded">
                             <table id="points-table" class="mb-3">
@@ -271,29 +277,36 @@
 
                     <div id="main-deck-wrapper">
                         <div id="player-turn-name"
-                             class="mb-1 @(this.myTurn || this.roundWon || this.roundOver ? "my-turn" : null)">
+                             class="@(this.myTurn || this.roundWon || this.roundOver ? "my-turn" : null) text-center">
                             @if (this.myTurn)
                             {
-                                @:Your turn!
+
+                                @(this.cardsToThrowToLightUp?.Length > 0 ? "Throw highlighted card to Lit Up! " : "Your turn! ")
                                 @*<span class="oi oi-question-mark text-primary ml-2"></span>*@
                             }
                             else
                             {
-                                @this.gameInfo?.CurrentTurnPlayerUsername@:'s turn.
+                                @this.gameInfo.CurrentTurnPlayerUsername@:'s turn.
                             }
                             @if (this.room?.TimePerTurn.TotalSeconds > 0)
                             {
                                 <span id="turn-timer" class="@(this.turnTimerCounter <= 15 ? (this.turnTimerCounter <= 7 ? "text-danger" : "text-warning") : (this.myTurn ? "text-primary" : null))">
+
                                     @(this.turnTimerCounter < 60 ? this.turnTimerCounter : TimeSpan.FromSeconds(this.turnTimerCounter).ToString(@"m\:ss"))
                                 </span>
                             }
                         </div>
 
                         <div id="main-deck">
-                            <div>
-                                <CardComponent OnClick="this.DrawFromEmptyDeck"
-                                               Highlight="this.allowedMoves.DrawFromEmptyDeck && this.myTurn"
-                                               Card="this.gameInfo?.EmptyDeckTopCard" />
+                            <div id="turn-timer-line">
+                                <div style="background: @(this.turnTimerCounter <= 15 ? (this.turnTimerCounter <= 7 ? "red" : "orange") : "green"); width: @((int)((this.turnTimerCounter / this.room.TimePerTurn.TotalSeconds) * 100.0))%">
+                                </div>
+                            </div>
+
+                            <div class="cards mt-2">
+                                <CardComponent OnClick="this.DrawFromDiscardDeck"
+                                               Highlight="this.allowedMoves.DrawFromDiscardDeck && this.myTurn"
+                                               Card="this.gameInfo.DiscardDeckTopCard" />
 
                                 @if (this.gameInfo.DeckCardsLeft > 0)
                                 {
@@ -304,14 +317,14 @@
                                 {
                                     <CardComponent />
                                 }
-                                <span id="deck-cards-left" @onclick="this.DrawFromDeck">@this.gameInfo?.DeckCardsLeft</span>
+                                <span id="deck-cards-left" @onclick="this.DrawFromDeck">@this.gameInfo.DeckCardsLeft</span>
                             </div>
                         </div>
                     </div>
 
                     <div id="chat" class="rounded-left@(this.newChatNotify ? " notify" : null)">
                         <div id="chat-toggle" class="rounded@(this.chatCollapsed ? "-left collapsed" : null)" @onclick="this.ToggleChat">
-                            <span class="oi @(this.chatCollapsed ? "oi-expand-right" : "oi-expand-left")"></span>
+                            <span class="oi @(this.chatCollapsed ? "oi-chat" : "oi-expand-left")"></span>
                         </div>
                         <ChatComponent NewChatNotify="async () => await this.NewChatNotifyAsync()" RoomId="@this.GameId" />
                     </div>
@@ -322,16 +335,23 @@
             @if (!this.gameOver)
             {
                 <div id="player-deck">
-                    @foreach (var card in this.playerCards)
+                    @if (this.playerCards.Count == 0)
                     {
-                        <CardComponent OnClick="() => this.PlayersCardsClickHandler(card.Id)"
-                                       Highlight="this.allowedMoves.PutToEmptyDeck && this.myTurn"
-                                       IsPlayerCard="true"
-                                       Card="card"
-                                       HighlightMove="this.cardToMoveSelected && this.cardToMoveSelectedId == card.Id"
-                                       HighlightWin="this.cardsToThrowToLightUp.Any(x => x == card.Id) && this.allowedMoves.LightUp"
-                                       PairId="this.pairCardsGroups.FindIndex(x => x.Any(y => y.Id == card.Id))"
-                                       PairCount="this.pairCardsGroups.FirstOrDefault(x => x.Any(y => y.Id == card.Id))?.Count ?? 0" />
+                        <CardComponent />
+                    }
+                    else
+                    {
+                        @foreach (var card in this.playerCards)
+                        {
+                            <CardComponent OnClick="() => this.PlayersCardsClickHandler(card.Id)"
+                                           Highlight="this.allowedMoves.PutToDiscardDeck && this.myTurn"
+                                           IsPlayerCard="true"
+                                           Card="card"
+                                           HighlightMove="this.cardToMoveSelected && this.cardToMoveSelectedId == card.Id"
+                                           HighlightWin="this.cardsToThrowToLightUp.Any(x => x == card.Id) && this.allowedMoves.LightUp"
+                                           PairId="this.pairCardsGroups.FindIndex(x => x.Any(y => y.Id == card.Id))"
+                                           PairCount="this.pairCardsGroups.FirstOrDefault(x => x.Any(y => y.Id == card.Id))?.Count ?? 0" />
+                        }
                     }
                 </div>
                 <div id="bottom-buttons">
@@ -341,15 +361,19 @@
                         <button class="btn btn-outline-primary" disabled="@disabled" @onclick="this.SortByType">Sort by Numbers</button>
                     </div>
                     <div>
-                        @if (this.userService.UserEmail == "metin.94.1@gmail.com")
+                        @if (this.userService.IsAdmin)
                         {
-                            <button class="btn btn-outline-warning" @onclick="() => this.gameService.EndRound(this.GameId)">End Round</button>
+                            <button class="btn btn-outline-warning mr-1" @onclick="() => this.gameService.EndRound(this.GameId)">End Round</button>
                         }
                         <button class="btn btn-danger" @onclick="async () => await this.LeaveMidGameTogglePopupAsync()">Leave Game</button>
                     </div>
                 </div>
             }
 
+            <div id="fullscreen-button"
+                 class="oi oi-fullscreen-enter p-2 position-absolute rounded bg-white"
+                 @onclick="async () => await this.ToggleFullscreen()"
+                 title="Toggle fullscreen"></div>
         </div>
     }
 }
@@ -443,7 +467,8 @@ else
             else
             {
                 this.modules = await JS.InvokeAsync<IJSObjectReference>("import", "./js/scriptModules.js");
-                await this.modules.InvokeVoidAsync("addResizePlayerDeckEvent");
+                await this.modules.InvokeVoidAsync("attachPlayerDeckEvent");
+                await this.modules.InvokeVoidAsync("attachFullscreenEvent");
                 this.developerMode = this.room.InDeveloperMode;
                 if (!this.developerMode)
                 {
@@ -488,11 +513,13 @@ else
                         this.gameInfo = this.gameService.GetGameInfo(GameId);
                         this.roundOverPlayersPointsDifference = this.gameService.GetLastRoundGainedPlayerPoints(GameId);
                         this.nextRoundCounter = 10;
+                        this.RestartTurnTimer();
+                        this.turnTimer.Stop();
                         this.roundStartsTimer.Start();
                         await this.InvokeAsync(this.StateHasChanged);
                     }));
 
-                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "ForceFinishAarraging", () =>
+                    this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "ForceFinishArraging", () =>
                     {
                         if (!this.roundOverReady && !this.roundOverShowResults && !this.roundWon)
                         {
@@ -549,7 +576,7 @@ else
                         this.playerCards = this.gameService.GetPlayerCards(this.GameId, this.player.Id).ToList();
                         this.gameInfo = this.gameService.GetGameInfo(this.GameId);
                         this.pairCardsGroups = this.gameService.GetPairGroups(this.playerCards);
-                        this.RestartTurnTimer();
+                        //this.RestartTurnTimer();
                         await InvokeAsync(this.StateHasChanged);
                     }));
 
@@ -576,7 +603,9 @@ else
                 this.subscriptionsInfo.Add(this.notifyService.Subscribe(this.player.InstanceId, "AllPlayersReady", async () =>
                 {
                     this.playersReady = true;
-                    this.RestartTurnTimer();
+                    //this.RestartTurnTimer();
+                    this.gameInfo = this.gameService.GetGameInfo(this.GameId);
+                    this.statsService.PlayerStartGame(this.userService.UserId);
                     await InvokeAsync(this.StateHasChanged);
                 }));
 
@@ -703,15 +732,15 @@ else
         return new int[0];
     }
 
-    private void PutCardToEmptyDeck(int cardId)
+    private void PutCardToDiscardDeck(int cardId)
     {
-        if (!this.myTurn || !this.allowedMoves.PutToEmptyDeck)
+        if (!this.myTurn || !this.allowedMoves.PutToDiscardDeck)
         {
             return;
         }
 
         this.myTurn = false;
-        this.playerCards = this.gameService.PlayerPutCardInEmptyDeck(this.GameId, this.player.Id, cardId).ToList();
+        this.playerCards = this.gameService.PlayerPutCardInDiscardDeck(this.GameId, this.player.Id, cardId).ToList();
         this.pairCardsGroups = this.gameService.GetPairGroups(this.playerCards);
         this.StateHasChanged();
     }
@@ -730,15 +759,15 @@ else
         this.StateHasChanged();
     }
 
-    private void DrawFromEmptyDeck()
+    private void DrawFromDiscardDeck()
     {
-        if (!this.myTurn || !this.allowedMoves.DrawFromEmptyDeck)
+        if (!this.myTurn || !this.allowedMoves.DrawFromDiscardDeck)
         {
             return;
         }
 
         this.myTurn = false;
-        this.playerCards = this.gameService.PlayerDrawEmptyDeckNextCard(this.GameId, this.player.Id).ToList();
+        this.playerCards = this.gameService.PlayerDrawDiscardDeckNextCard(this.GameId, this.player.Id).ToList();
         this.pairCardsGroups = this.gameService.GetPairGroups(this.playerCards);
         this.cardsToThrowToLightUp = this.GetCardIdsToThrowToLightUp();
         this.StateHasChanged();
@@ -791,9 +820,9 @@ else
         else
         {
             this.cardToMoveSelected = false;
-            if (!this.developerMode && this.myTurn && this.allowedMoves.PutToEmptyDeck && cardId == this.cardToMoveSelectedId)
+            if (!this.developerMode && this.myTurn && this.allowedMoves.PutToDiscardDeck && cardId == this.cardToMoveSelectedId)
             {
-                PutCardToEmptyDeck(cardId);
+                PutCardToDiscardDeck(cardId);
                 return;
             }
             else if (this.developerMode && cardId == this.cardToMoveSelectedId)
@@ -840,6 +869,11 @@ else
         this.infoCollapsed = !this.infoCollapsed;
     }
 
+    private async Task ToggleFullscreen()
+    {
+        await this.modules.InvokeVoidAsync("toggleFullscreen");
+    }
+
     private async Task LeaveMidGameTogglePopupAsync()
     {
         this.leavingGamePopup = !this.leavingGamePopup;
@@ -873,7 +907,8 @@ else
 
         if (this.modules is not null)
         {
-            await this.modules.InvokeVoidAsync("removeResizePlayerDeckEvent");
+            await this.modules.InvokeVoidAsync("dettachResizePlayerDeckEvent");
+            await this.modules.InvokeVoidAsync("dettachFullscreenEvent");
             await this.modules.DisposeAsync();
         }
 

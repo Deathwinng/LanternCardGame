@@ -257,12 +257,12 @@ namespace LanternCardGame.Services
             return room.InvitedPlayerIds.Remove(player.Id) && playerInviteRemoveSuccess;
         }
 
-        public void AddChatMessageToRoom(string roomId, ChatModel chat)
+        public void AddChatMessageToRoom(ChatModel chat, string playerInstanceId, string roomId)
         {
             this.DoesRoomExist(roomId);
             var room = GetRoom(roomId);
             room.ChatList.Add(chat);
-            this.notifyService.InvokeByGroup(roomId, "NewChat");
+            this.notifyService.InvokeByGroupExcept(roomId, playerInstanceId, "NewChat");
         }
 
         public void StartGame(string roomId)

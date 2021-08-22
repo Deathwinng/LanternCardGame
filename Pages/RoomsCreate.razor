@@ -11,57 +11,68 @@
 
 <h2 class="mb-3">Create new room</h2>
 
-<EditForm Model="@this.model" OnValidSubmit="HandleCreateNewRoom">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-    <div class="input-group mb-2">
-        <div class="input-group-prepend">
-            <span class="input-group-text">Room name:</span>
+<div id="form">
+    <EditForm Model="@this.model" OnValidSubmit="HandleCreateNewRoom">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="input-group mb-2">
+            <div class="input-group-prepend">
+                <span class="input-group-text">Room name:</span>
+            </div>
+            <InputText @bind-Value="@this.model.Name" autofocus placeholder="Between 3 and 20 characters." class="form-control" />
         </div>
-        <InputText @bind-Value="@this.model.Name" placeholder="Between 3 and 20 characters." class="form-control" />
-    </div>
-    <div class="input-group mb-2">
-        <div class="input-group-prepend">
-            <span class="input-group-text">Number of players:</span>
+        <div class="input-group mb-2">
+            <div class="input-group-prepend">
+                <span class="input-group-text">Number of players:</span>
+            </div>
+            <InputNumber @bind-Value="@this.model.NumberOfPlayers" disabled="@(this.model.DeveloperMode)" class="form-control" min="2" max="4" />
         </div>
-        <InputNumber @bind-Value="@this.model.NumberOfPlayers" class="form-control" min="2" max="4" />
-    </div>
-    <div class="input-group mb-2">
-        <div class="input-group-prepend">
-            <span class="input-group-text">Max points to finish game:</span>
+        <div class="input-group mb-2">
+            <div class="input-group-prepend">
+                <span class="input-group-text">Max points to finish game:</span>
+            </div>
+            <InputNumber @bind-Value="@this.model.MaxPoints" disabled="@(this.model.DeveloperMode)" class="form-control" min="20" max="1000" />
         </div>
-        <InputNumber @bind-Value="@this.model.MaxPoints" class="form-control" min="20" max="1000" />
-    </div>
-    <div class="input-group mb-2">
-        <div class="input-group-prepend">
-            <span class="input-group-text">Enable turn timer:</span>
+        <div class="input-group mb-2">
+            <div class="input-group-prepend">
+                <span class="input-group-text">Enable turn timer:</span>
+            </div>
+            <InputCheckbox @bind-Value="@this.model.TimerEnabled" disabled="@(this.model.DeveloperMode)" class="form-control" />
         </div>
-        <InputCheckbox @bind-Value="@this.model.TimerEnabled" class="form-control" />
-    </div>
-    <div class="input-group mb-2">
-        <div class="input-group-prepend">
-            <span class="input-group-text">Time per turn:</span>
+        <div class="input-group mb-2">
+            <div class="input-group-prepend">
+                <span class="input-group-text">Time per turn:</span>
+            </div>
+            <InputNumber disabled="@(!this.model.TimerEnabled || this.model.DeveloperMode)" @bind-Value="@this.model.SecondsPerTurn" class="form-control" min="10" max="@(5 * 60)" />
+            <div class="input-group-append">
+                <span class="input-group-text">seconds</span>
+            </div>
         </div>
-        <InputNumber disabled="@(!this.model.TimerEnabled)" @bind-Value="@this.model.SecondsPerTurn" class="form-control" min="10" max="@(5 * 60)" />
-        <div class="input-group-append">
-            <span class="input-group-text">seconds</span>
+        <div class="input-group mb-2">
+            <div class="input-group-prepend">
+                <span class="input-group-text">Private room:</span>
+            </div>
+            <InputCheckbox @bind-Value="@this.model.Private" disabled="@(this.model.DeveloperMode)" class="form-control" />
         </div>
-    </div>
-    <div class="input-group mb-2">
-        <div class="input-group-prepend">
-            <span class="input-group-text">Private room:</span>
+        <div class="input-group mb-2">
+            <div class="input-group-prepend">
+                <span class="input-group-text">Allow friends to join uninvited:</span>
+            </div>
+            <InputCheckbox disabled="@(!this.model.Private)" @bind-Value="@this.model.JoinUninvited" class="form-control" />
         </div>
-        <InputCheckbox @bind-Value="@this.model.Private" class="form-control" />
-    </div>
-    <div class="input-group mb-2">
-        <div class="input-group-prepend">
-            <span class="input-group-text">Allow friends to join uninvited:</span>
-        </div>
-        <InputCheckbox disabled="@(!this.model.Private)" @bind-Value="@this.model.JoinUninvited" class="form-control" />
-    </div>
+        @if (this.userService.IsAdmin)
+        {
+            <div class="input-group mb-2">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Developer mode:</span>
+                </div>
+                <InputCheckbox @bind-Value="@this.model.DeveloperMode" class="form-control" />
+            </div>
+        }
 
-    <button class="btn btn-outline-primary">Create new room</button>
-</EditForm>
+        <button class="btn btn-outline-primary">Create new room</button>
+    </EditForm>
+</div>
 
 @code {
     NewRoomModel model;
@@ -74,6 +85,12 @@
 
     private void HandleCreateNewRoom()
     {
+        if (this.model.DeveloperMode)
+        {
+            this.model.NumberOfPlayers = 1;
+            this.model.TimerEnabled = false;
+        }
+
         var roomId = this.roomsService.CreateNewRoom(this.userService.UserId, this.model);
         this.navManager.NavigateTo($"/rooms/{roomId}");
     }

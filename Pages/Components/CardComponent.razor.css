@@ -16,6 +16,11 @@
         background: #ececec;
     }
 
+.card.mini {
+    width: 65px;
+    height: 92px;
+}
+
 .player-card {
     margin: 5px -5px;
 }

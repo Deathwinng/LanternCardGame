@@ -3,36 +3,36 @@
     public class PlayerTurnAllowedMoves
     {
         private readonly bool drawFromDeck;
-        private readonly bool drawFromEmptyDeck;
-        private readonly bool putToEmptyDeck;
+        private readonly bool drawFromDiscardDeck;
+        private readonly bool putToDiscardDeck;
         private readonly bool lightUp;
 
         public PlayerTurnAllowedMoves()
         {
-            drawFromDeck = false;
-            drawFromEmptyDeck = false;
-            putToEmptyDeck = false;
-            lightUp = false;
+            this.drawFromDeck = false;
+            this.drawFromDiscardDeck = false;
+            this.putToDiscardDeck = false;
+            this.lightUp = false;
         }
 
         public PlayerTurnAllowedMoves(
             bool drawFromDeck,
-            bool drawFromEmptyDeck,
-            bool putToEmptyDeck,
+            bool drawFromDiscardDeck,
+            bool putToDiscardDeck,
             bool lightUp)
         {
             this.drawFromDeck = drawFromDeck;
-            this.drawFromEmptyDeck = drawFromEmptyDeck;
-            this.putToEmptyDeck = putToEmptyDeck;
+            this.drawFromDiscardDeck = drawFromDiscardDeck;
+            this.putToDiscardDeck = putToDiscardDeck;
             this.lightUp = lightUp;
         }
 
-        public bool DrawFromDeck => drawFromDeck;
+        public bool DrawFromDeck => this.drawFromDeck;
 
-        public bool DrawFromEmptyDeck => drawFromEmptyDeck;
+        public bool DrawFromDiscardDeck => this.drawFromDiscardDeck;
 
-        public bool PutToEmptyDeck => putToEmptyDeck;
+        public bool PutToDiscardDeck => this.putToDiscardDeck;
 
-        public bool LightUp => lightUp;
+        public bool LightUp => this.lightUp;
     }
 }

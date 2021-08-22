@@ -25,9 +25,9 @@
     {
         <div class="no-messages">No messages</div>
     }
-    <EditForm Model="chatModel" OnValidSubmit="SendChat">
+    <EditForm Model="this.chatModel" OnValidSubmit="this.SendChat">
         <div>
-            <InputText @bind-Value="chatModel.Message" class="rounded" />
+            <InputText @bind-Value="this.chatModel.Message" class="rounded" />
             <button class="btn btn-outline-info">Send</button>
         </div>
     </EditForm>
@@ -50,7 +50,7 @@
         this.chatList = this.roomsService.GetRoom(this.RoomId).ChatList;
         this.subscriptionInfo = this.notifyService.Subscribe(this.userService.InstanceId, "NewChat", async () =>
         {
-            this.chatList = this.roomsService.GetRoom(this.RoomId).ChatList;
+            //this.chatList = this.roomsService.GetRoom(this.RoomId).ChatList;
             await this.InvokeAsync(this.StateHasChanged);
             try
             {
@@ -71,27 +71,27 @@
 
     public void SendChat()
     {
-        if (string.IsNullOrEmpty(chatModel.Message))
+        if (string.IsNullOrEmpty(this.chatModel.Message))
         {
             return;
         }
 
         var chat = new ChatModel
         {
-            Message = chatModel.Message,
+            Message = this.chatModel.Message,
             PlayerName = this.userService.Username,
             RoomId = this.RoomId,
         };
 
-        chatModel.Message = string.Empty;
-        this.roomsService.AddChatMessageToRoom(this.RoomId, chat);
+        this.chatModel.Message = string.Empty;
+        this.roomsService.AddChatMessageToRoom(chat, this.userService.InstanceId, this.RoomId);
     }
 
     public async ValueTask DisposeAsync()
     {
         if (this.subscriptionInfo.Length > 0)
         {
-            this.notifyService.Unsubscribe(this.userService.InstanceId, "NewChat");
+            this.notifyService.Unsubscribe(this.subscriptionInfo[0], this.subscriptionInfo[1]);
         }
 
         if (this.module is not null)

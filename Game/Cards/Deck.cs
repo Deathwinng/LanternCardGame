@@ -14,28 +14,26 @@ namespace LanternCardGame.Game.Cards
             {
                 for (int i = 1; i < Enum.GetValues<CardType>().Length; i++)
                 {
-                    allCards.Add(new Card((CardType)i, cardSuit));
+                    this.allCards.Add(new Card((CardType)i, cardSuit));
                 }
             }
 
-            allCards.Add(new Card(CardType.Joker, CardSuit.Heart));
-            allCards.Add(new Card(CardType.Joker, CardSuit.Spade));
-            allCards = allCards.Shuffle().ToList();
+            this.allCards.Add(new Card(CardType.Joker, CardSuit.Heart));
+            this.allCards.Add(new Card(CardType.Joker, CardSuit.Spade));
+            this.allCards = this.allCards.Shuffle().ToList();
         }
 
         public IEnumerable<Card> GetNextNumberOfCards(int numOfCards)
         {
-            if (CardsLeft < numOfCards)
+            if (this.CardsLeft < numOfCards)
             {
                 throw new Exception("Not enought cards in deck.");
             }
 
-            var cards = allCards.Skip(CardsLeft - 1 - numOfCards).Take(numOfCards).ToHashSet();
-            //this.allCards.RemoveRange(this.CardsLeft - numOfCards, numOfCards);
-            //this.allCards = this.allCards.Where(x => !cards.Any(y => y.Id == x.Id)).ToList();
+            var cards = this.allCards.Skip(this.CardsLeft - 1 - numOfCards).Take(numOfCards).ToHashSet();
             foreach (var card in cards)
             {
-                allCards.Remove(card);
+                this.allCards.Remove(card);
             }
 
             return cards;

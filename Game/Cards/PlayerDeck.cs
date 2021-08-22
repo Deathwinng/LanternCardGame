@@ -10,7 +10,7 @@ namespace LanternCardGame.Game.Cards
 
         public PlayerDeck()
         {
-            cards = new List<Card>(10);
+            this.cards = new List<Card>(10);
         }
 
         public PlayerDeck(ICollection<Card> cards)
@@ -18,27 +18,27 @@ namespace LanternCardGame.Game.Cards
             this.cards = cards.ToList();
         }
 
-        public int CardsCount => cards.Count;
+        public int CardsCount => this.cards.Count;
 
-        public ICollection<Card> AllCards => cards.AsReadOnly();
+        public ICollection<Card> AllCards => this.cards.AsReadOnly();
 
         public void AddCardToDeck(Card card)
         {
-            if (CardsCount >= 10)
+            if (this.CardsCount >= 10)
             {
                 throw new Exception("Player's deck is full.");
             }
-            if (cards.Contains(card))
+            if (this.cards.Contains(card))
             {
                 throw new Exception("Duplicate card.");
             }
 
-            cards.Add(card);
+            this.cards.Add(card);
         }
 
         public void AddCardsToDeck(IEnumerable<Card> cards)
         {
-            if (CardsCount + cards.Count() > 10)
+            if (this.CardsCount + cards.Count() > 10)
             {
                 throw new Exception("Player's deck is full.");
             }
@@ -56,20 +56,20 @@ namespace LanternCardGame.Game.Cards
             {
                 throw new Exception("Card not present in player's deck.");
             }
-            if (CardsCount < 10)
+            if (this.CardsCount < 10)
             {
                 throw new Exception("Not enought cards.");
             }
 
-            var card = cards.First(x => x.Id == cardId);
-            cards.Remove(card);
+            var card = this.cards.First(x => x.Id == cardId);
+            this.cards.Remove(card);
             return card;
         }
 
         public ICollection<Card> RearrangeCards(ICollection<Card> cards)
         {
             var numOfIntersectingCards = this.cards.Intersect(cards).ToList();
-            if (CardsCount != numOfIntersectingCards.Count || CardsCount != cards.Count)
+            if (this.CardsCount != numOfIntersectingCards.Count || this.CardsCount != cards.Count)
             {
                 throw new Exception("Cards given don't match with cards in player's deck.");
             }

@@ -10,13 +10,13 @@
         {
             this.cardType = cardType;
             this.cardSuit = cardSuit;
-            id = int.Parse($"{(int)this.cardSuit}{(int)this.cardType}");
+            this.id = int.Parse($"{(int)this.cardSuit}{(int)this.cardType}");
         }
 
-        public int Id => id;
+        public int Id => this.id;
 
-        public CardType CardType => cardType;
+        public CardType CardType => this.cardType;
 
-        public CardSuit CardSuit => cardSuit;
+        public CardSuit CardSuit => this.cardSuit;
     }
 }

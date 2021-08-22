@@ -10,20 +10,20 @@ namespace LanternCardGame.Game.Cards
 
         public BaseDeck()
         {
-            allCards = new List<Card>(54);
+            this.allCards = new List<Card>(54);
         }
 
-        public int CardsLeft => allCards.Count;
+        public int CardsLeft => this.allCards.Count;
 
         public Card GetNextCard()
         {
-            if (CardsLeft == 0)
+            if (this.CardsLeft == 0)
             {
                 throw new Exception("Deck is empty.");
             }
 
-            var card = allCards.Last();
-            allCards.Remove(card);
+            var card = this.allCards.Last();
+            this.allCards.Remove(card);
             return card;
         }
     }

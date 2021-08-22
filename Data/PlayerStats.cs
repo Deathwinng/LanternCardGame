@@ -9,6 +9,7 @@ namespace LanternCardGame.Data
         {
             this.Id = Guid.NewGuid().ToString();
             this.RegistrationDate = DateTime.UtcNow;
+            this.GamesStarted = 0;
             this.GamesFinished = 0;
             this.GamesLeft = 0;
             this.GamesWon = 0;
@@ -19,6 +20,9 @@ namespace LanternCardGame.Data
         public string Id { get; set; }
 
         public DateTime RegistrationDate { get; set; }
+
+        [Range(0, int.MaxValue)]
+        public int GamesStarted { get; set; }
 
         [Range(0, int.MaxValue)]
         public int GamesFinished { get; set; }

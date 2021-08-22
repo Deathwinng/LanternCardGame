@@ -25,7 +25,7 @@ namespace LanternCardGame.Game
         private readonly IDictionary<string, int> playersLastRoundPoints;
         private readonly IDictionary<string, bool> playersReady;
         private Deck deck;
-        private EmptyDeck emptyDeck;
+        private DiscardDeck discardDeck;
 
         public GameInstance(
             string gameId,
@@ -50,7 +50,7 @@ namespace LanternCardGame.Game
             }
 
             this.deck = new Deck();
-            this.emptyDeck = new EmptyDeck();
+            this.discardDeck = new DiscardDeck();
             this.currentTurnPlayerId = this.players.First().Id;
             this.startingRoudTurnPlayerId = this.currentTurnPlayerId;
             this.rotationsPerRoundsPlayed = 0;
@@ -151,7 +151,7 @@ namespace LanternCardGame.Game
                 }
             }
 
-            this.emptyDeck.AddCard(this.deck.GetNextCard());
+            this.discardDeck.AddCard(this.deck.GetNextCard());
         }
 
         public void Restart()
@@ -176,14 +176,14 @@ namespace LanternCardGame.Game
             this.RoundWinner = null;
             this.RoundOver = false;
             this.deck = new Deck();
-            this.emptyDeck = new EmptyDeck();
+            this.discardDeck = new DiscardDeck();
             foreach (var player in players)
             {
                 this.playersDecks[player.Id] = new PlayerDeck();
             }
 
             this.ResetPlayersReady();
-            this.StartGame();
+            //this.StartGame();
         }
 
         public ICollection<Card> AddCardToPlayerDeck(string playerId, Card card)
@@ -221,13 +221,13 @@ namespace LanternCardGame.Game
 
         public Card DrawNextCard() => this.deck.GetNextCard();
 
-        public Card PeekEmptyDeckNextCard() => this.emptyDeck.PeekNextCard();
+        public Card PeekDiscardDeckNextCard() => this.discardDeck.PeekNextCard();
 
-        public Card DrawEmptyDeckNextCard() => this.emptyDeck.GetNextCard();
+        public Card DrawDiscardDeckNextCard() => this.discardDeck.GetNextCard();
 
-        public void PutCardInEmptyDeck(Card card)
+        public void PutCardInDiscardDeck(Card card)
         {
-            this.emptyDeck.AddCard(card);
+            this.discardDeck.AddCard(card);
         }
 
         public string SetNextPlayerTurn()
@@ -315,6 +315,7 @@ namespace LanternCardGame.Game
 
         public void DisposeTurnTimer()
         {
+            this.turnTimer?.Stop();
             this.turnTimer?.Dispose();
         }
 
@@ -361,6 +362,7 @@ namespace LanternCardGame.Game
 
         public void DisposeArragingTimer()
         {
+            this.arragingTimer?.Stop();
             this.arragingTimer?.Dispose();
         }
 

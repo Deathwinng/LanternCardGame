@@ -10,20 +10,20 @@ namespace LanternCardGame.Game
         private readonly IDictionary<string, int> playersCardsNumber;
         private readonly IDictionary<string, int> playersPoints;
         private readonly int deckCardsLeft;
-        private readonly Card emptyDeckTopCard;
+        private readonly Card discardDeckTopCard;
         private readonly int roundsPlayed;
         private readonly int rotationsPerRoundsPlayed;
 
         public GameInfo()
         {
-            gameId = string.Empty;
-            currentTurnPlayerUsername = string.Empty;
-            playersCardsNumber = new Dictionary<string, int>();
-            playersPoints = new Dictionary<string, int>();
-            deckCardsLeft = 0;
-            emptyDeckTopCard = null;
-            roundsPlayed = 0;
-            rotationsPerRoundsPlayed = 0;
+            this.gameId = string.Empty;
+            this.currentTurnPlayerUsername = string.Empty;
+            this.playersCardsNumber = new Dictionary<string, int>();
+            this.playersPoints = new Dictionary<string, int>();
+            this.deckCardsLeft = 0;
+            this.discardDeckTopCard = null;
+            this.roundsPlayed = 0;
+            this.rotationsPerRoundsPlayed = 0;
         }
 
         public GameInfo(
@@ -32,7 +32,7 @@ namespace LanternCardGame.Game
             IDictionary<string, int> playersCardsNumber,
             IDictionary<string, int> playersPoints,
             int deckCardsLeft,
-            Card emptyDeckTopCard,
+            Card discardDeckTopCard,
             int roundsPlayed,
             int rotationsPerRoundsPlayed)
         {
@@ -41,25 +41,25 @@ namespace LanternCardGame.Game
             this.playersCardsNumber = playersCardsNumber;
             this.playersPoints = playersPoints;
             this.deckCardsLeft = deckCardsLeft;
-            this.emptyDeckTopCard = emptyDeckTopCard;
+            this.discardDeckTopCard = discardDeckTopCard;
             this.roundsPlayed = roundsPlayed;
             this.rotationsPerRoundsPlayed = rotationsPerRoundsPlayed;
         }
 
-        public string GameId => gameId;
+        public string GameId => this.gameId;
 
-        public string CurrentTurnPlayerUsername => currentTurnPlayerUsername;
+        public string CurrentTurnPlayerUsername => this.currentTurnPlayerUsername;
 
-        public IDictionary<string, int> PlayersCardsNumber => playersCardsNumber;
+        public IDictionary<string, int> PlayersCardsNumber => this.playersCardsNumber;
 
-        public IDictionary<string, int> PlayersPoints => playersPoints;
+        public IDictionary<string, int> PlayersPoints => this.playersPoints;
 
-        public int DeckCardsLeft => deckCardsLeft;
+        public int DeckCardsLeft => this.deckCardsLeft;
 
-        public Card EmptyDeckTopCard => emptyDeckTopCard;
+        public Card DiscardDeckTopCard => this.discardDeckTopCard;
 
-        public int RoundsPlayed => roundsPlayed;
+        public int RoundsPlayed => this.roundsPlayed;
 
-        public int RotationsPerRoundsPlayed => rotationsPerRoundsPlayed;
+        public int RotationsPerRoundsPlayed => this.rotationsPerRoundsPlayed;
     }
 }

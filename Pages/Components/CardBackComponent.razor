@@ -1,4 +1,4 @@
-﻿<div @onclick="OnClick" class="card card-back @(IsMini ? "card-mini" : "") @(Highlight ? "highlight" : "")"></div>
+﻿<div @onclick="this.OnClick" class="card card-back @(this.IsMini ? "card-mini" : "") @(this.Highlight ? "highlight" : "")"></div>
 
 @code {
     [Parameter]

@@ -38,7 +38,7 @@
                     <td>@(string.IsNullOrWhiteSpace(room.Name) ? "(No name)" : room.Name)</td>
                     <td>@room.PlayerCount / @room.MaxPlayers</td>
                     <td>@room.MaxPoints</td>
-                    <td>@room.TimePerTurn</td>
+                    <td>@(room.TimePerTurn.TotalSeconds > 0 ? $"{room.TimePerTurn.ToString(@"m\:ss")} min" : "Unlimited")</td>
                     <td>
                         <button class="btn btn-success"
                                 disabled="@(room.PlayerCount >= room.MaxPlayers)"

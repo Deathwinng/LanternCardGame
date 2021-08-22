@@ -50,7 +50,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await this.currentUserService.Initialize();
+        await this.currentUserService.InitializeAsync();
         if (this.currentUserService.IsAuthenticated)
         {
             this.player = this.playersService.PlayerConnected(this.currentUserService.UserId, this.currentUserService.Username);

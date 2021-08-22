@@ -49,10 +49,10 @@ namespace LanternCardGame.Services
             return this.GetGameInstance(gameId).CurrentPlayerTurnAllowedMoves;
         }
 
-        public void StartGame(string gameId)
+        public void EnterGame(string gameId)
         {
-            var gameInstance = this.CreateNewGameInstance(gameId);
-            gameInstance.StartGame();
+            this.CreateNewGameInstance(gameId);
+            //gameInstance.StartGame();
             this.notifyService.InvokeByGroup(gameId, "GameStarting");
         }
 
@@ -69,21 +69,90 @@ namespace LanternCardGame.Services
                 this.DoesGameInstanceExists(gameId);
                 var gameInstance = this.GetGameInstance(gameId);
                 gameInstance.PlayerReady(playerId);
-                var playerInstanceId = this.playersService.GetPlayerById(playerId).InstanceId;
-                this.notifyService.InvokeByPlayer(playerInstanceId, "GetPlayerCards");
+                //var playerInstanceId = this.playersService.GetPlayerById(playerId).InstanceId;
+                //this.notifyService.InvokeByPlayer(playerInstanceId, "GetPlayerCards");
                 if (gameInstance.AllPlayersReady)
                 {
-                    var allowedMoves = new PlayerTurnAllowedMoves(true, true, false, false);
-                    gameInstance.SetCurrentPlayerAlowedMoves(allowedMoves);
-                    this.InvokeUpdateGameInfo(gameId);
-                    var currentPlayerId = gameInstance.CurrentTurnPlayerId;
-                    var currentPlayerInstanceId = this.playersService.GetPlayerById(currentPlayerId).InstanceId;
-                    this.notifyService.InvokeByGroup(gameId, "AllPlayersReady");
-                    this.InvokeMyTurn(currentPlayerInstanceId);
                     gameInstance.ResetPlayersReady();
-                    gameInstance.RestartTurnTimer();
+                    this.notifyService.InvokeByGroup(gameId, "AllPlayersReady");
+                    this.DealCards(gameId);
                 }
             }
+        }
+
+        public void StartGame(string gameId)
+        {
+            this.DoesGameInstanceExists(gameId);
+            var gameInstance = this.GetGameInstance(gameId);
+            var allowedMoves = new PlayerTurnAllowedMoves(true, true, false, false);
+            gameInstance.SetCurrentPlayerAlowedMoves(allowedMoves);
+            this.InvokeUpdateGameInfo(gameId);
+            var currentPlayerId = gameInstance.CurrentTurnPlayerId;
+            var currentPlayerInstanceId = this.playersService.GetPlayerById(currentPlayerId).InstanceId;
+            this.InvokeMyTurn(currentPlayerInstanceId);
+            this.notifyService.InvokeByGroup(gameId, "NextPlayerTurn");
+            gameInstance.RestartTurnTimer();
+        }
+
+        public void DealCards(string gameId)
+        {
+            this.DoesGameInstanceExists(gameId);
+            var gameInstance = this.GetGameInstance(gameId);
+            var numberOfTimers = (9 * gameInstance.PlayersCount) + 1;
+            var timers = new List<Timer>(numberOfTimers);
+            const int delay = 300;
+            for (int i = 1; i <= numberOfTimers; i++)
+            {
+                timers.Add(new Timer(i * delay)
+                {
+                    AutoReset = false
+                });
+            }
+
+            var counter = 0;
+            for (int i = 0; i < 9; i++)
+            {
+                foreach (var player in gameInstance.Players)
+                {
+                    timers[counter].Elapsed += (source, e) =>
+                    {
+                        var card = gameInstance.DrawNextCard();
+                        gameInstance.AddCardToPlayerDeck(player.Id, card);
+                        this.notifyService.InvokeByPlayer(player.InstanceId, "GetPlayerCards");
+                        this.InvokeUpdateGameInfo(gameId);
+                    };
+
+                    counter++;
+                }
+            }
+
+            timers[counter].Elapsed += (source, e) =>
+            {
+                gameInstance.PutCardInDiscardDeck(gameInstance.DrawNextCard());
+                this.StartGame(gameId);
+            };
+
+            foreach (var timer in timers)
+            {
+                timer.Start();
+            }
+
+            var disposeTimer = new Timer(delay * (numberOfTimers + 1))
+            {
+                AutoReset = false
+            };
+
+            disposeTimer.Elapsed += (source, e) =>
+            {
+                foreach (var timer in timers)
+                {
+                    timer.Dispose();
+                }
+
+                disposeTimer.Dispose();
+            };
+
+            disposeTimer.Start();
         }
 
         public void RoundOverPlayerReady(string gameId, string playerId)
@@ -141,19 +210,21 @@ namespace LanternCardGame.Services
                 this.notifyService.InvokeByGroup(gameId, "NumberOfReplayReadyPlayers");
                 if (gameInstance.AllPlayersReady)
                 {
-                    gameInstance.Restart();
-                    var allowedMoves = new PlayerTurnAllowedMoves(true, true, false, false);
-                    gameInstance.SetCurrentPlayerAlowedMoves(allowedMoves);
                     gameInstance.ResetPlayersReady();
-                    var currentPlayerId = gameInstance.CurrentTurnPlayerId;
-                    var currentPlayerInstanceId = this.playersService.GetPlayerById(currentPlayerId).InstanceId;
+                    gameInstance.Restart();
+                    //var allowedMoves = new PlayerTurnAllowedMoves(true, true, false, false);
+                    //gameInstance.SetCurrentPlayerAlowedMoves(allowedMoves);
+                    //var currentPlayerId = gameInstance.CurrentTurnPlayerId;
+                    //var currentPlayerInstanceId = this.playersService.GetPlayerById(currentPlayerId).InstanceId;
                     this.notifyService.InvokeByGroup(gameId, "NewRoundStarting");
-                    this.InvokeMyTurn(currentPlayerInstanceId);
-                    this.InvokeUpdateGameInfo(gameId);
+                    //this.InvokeMyTurn(currentPlayerInstanceId);
+                    //this.InvokeUpdateGameInfo(gameId);
                     this.notificationService.AddPlayersNotification(
                         gameInstance.Players.Select(x => x.InstanceId),
                         "New game started!",
                         5);
+                    this.notifyService.InvokeByGroup(gameId, "ReceiveNotification");
+                    this.DealCards(gameId);
                     gameInstance.RestartTurnTimer();
                 }
             }
@@ -177,7 +248,7 @@ namespace LanternCardGame.Services
                     playerCardsNumbers,
                     playersPoints,
                     gameInstance.DeckCardsLeft,
-                    gameInstance.PeekEmptyDeckNextCard(),
+                    gameInstance.PeekDiscardDeckNextCard(),
                     gameInstance.RoundsPlayed,
                     gameInstance.RotationsPerRoundsPlayed);
         }
@@ -240,17 +311,17 @@ namespace LanternCardGame.Services
             return playerCards;
         }
 
-        public ICollection<Card> PlayerDrawEmptyDeckNextCard(string gameId, string playerId)
+        public ICollection<Card> PlayerDrawDiscardDeckNextCard(string gameId, string playerId)
         {
             this.DoesGameInstanceExists(gameId);
             this.IsPlayerAllowed(gameId, playerId);
             var gameInstance = this.GetGameInstance(gameId);
-            if (!gameInstance.CurrentPlayerTurnAllowedMoves.DrawFromEmptyDeck || gameInstance.RoundOver)
+            if (!gameInstance.CurrentPlayerTurnAllowedMoves.DrawFromDiscardDeck || gameInstance.RoundOver)
             {
                 throw new Exception("Move not allowed.");
             }
 
-            var nextCard = gameInstance.DrawEmptyDeckNextCard();
+            var nextCard = gameInstance.DrawDiscardDeckNextCard();
             var playerCards = gameInstance.AddCardToPlayerDeck(playerId, nextCard);
             var allowedMoves = new PlayerTurnAllowedMoves(false, false, true, false);
             gameInstance.SetCurrentPlayerAlowedMoves(allowedMoves);
@@ -262,14 +333,14 @@ namespace LanternCardGame.Services
             return playerCards;
         }
 
-        public ICollection<Card> PlayerPutCardInEmptyDeck(string gameId, string playerId, int cardId)
+        public ICollection<Card> PlayerPutCardInDiscardDeck(string gameId, string playerId, int cardId)
         {
             lock (this.balanceLock)
             {
                 this.DoesGameInstanceExists(gameId);
                 this.IsPlayerAllowed(gameId, playerId);
                 var gameInstance = this.GetGameInstance(gameId);
-                if (!gameInstance.CurrentPlayerTurnAllowedMoves.PutToEmptyDeck || gameInstance.RoundOver)
+                if (!gameInstance.CurrentPlayerTurnAllowedMoves.PutToDiscardDeck || gameInstance.RoundOver)
                 {
                     throw new Exception("Move not allowed.");
                 }
@@ -279,14 +350,13 @@ namespace LanternCardGame.Services
                 }
 
                 var card = gameInstance.RemoveCardFromPlayerDeck(playerId, cardId);
-                gameInstance.PutCardInEmptyDeck(card);
+                gameInstance.PutCardInDiscardDeck(card);
                 var drawDeckAllowed = gameInstance.DeckCardsLeft > 0;
                 var allowedMoves = new PlayerTurnAllowedMoves(drawDeckAllowed, true, false, false);
                 gameInstance.SetCurrentPlayerAlowedMoves(allowedMoves);
                 var playerCards = gameInstance.GetPlayerCards(playerId);
                 var pairGroups = this.GetPairGroups(playerCards.ToList());
                 var canLightUp = this.CheckIfPlayerCanLightUp(gameId, playerId, pairGroups);
-
 
                 if (canLightUp)
                 {
@@ -355,10 +425,10 @@ namespace LanternCardGame.Services
             return this.GetGameInstance(gameId).RoundWinner;
         }
 
-        public Card PeekEmptyDeckNextCard(string gameId)
+        public Card PeekDiscardDeckNextCard(string gameId)
         {
             this.DoesGameInstanceExists(gameId);
-            return this.GetGameInstance(gameId).PeekEmptyDeckNextCard();
+            return this.GetGameInstance(gameId).PeekDiscardDeckNextCard();
         }
 
         public void LeaveGame(string gameId, string playerId)
@@ -425,6 +495,11 @@ namespace LanternCardGame.Services
 
         private List<List<Card>> GetPairGroupsHelper(List<Card> cards, int startIndex, List<List<Card>> groups)
         {
+            if (startIndex > cards.Count - 1)
+            {
+                return new List<List<Card>>();
+            }
+
             var group1 = new List<Card>
             {
                 cards[startIndex]
@@ -559,8 +634,8 @@ namespace LanternCardGame.Services
                 var allowedMoves = this.GetCurrentPlayerTurnAllowedMoves(gameId);
                 var newAllowedMoves = new PlayerTurnAllowedMoves(
                     allowedMoves.DrawFromDeck,
-                    allowedMoves.DrawFromEmptyDeck,
-                    allowedMoves.PutToEmptyDeck,
+                    allowedMoves.DrawFromDiscardDeck,
+                    allowedMoves.PutToDiscardDeck,
                     numOfPairedCards >= 9);
                 this.GetGameInstance(gameId).SetCurrentPlayerAlowedMoves(newAllowedMoves);
             }
@@ -580,12 +655,13 @@ namespace LanternCardGame.Services
                 5);
 
             this.notifyService.InvokeByGroup(gameId, "ReceiveNotification");
-            var allowedMoves = new PlayerTurnAllowedMoves(true, true, false, false);
-            gameInstance.SetCurrentPlayerAlowedMoves(allowedMoves);
-            gameInstance.RestartTurnTimer();
-            var currentPlayerId = gameInstance.CurrentTurnPlayerId;
-            var playerInstanceId = this.playersService.GetPlayerById(currentPlayerId).InstanceId;
-            this.InvokeMyTurn(playerInstanceId);
+            //var allowedMoves = new PlayerTurnAllowedMoves(true, true, false, false);
+            //gameInstance.SetCurrentPlayerAlowedMoves(allowedMoves);
+            //gameInstance.RestartTurnTimer();
+            //var currentPlayerId = gameInstance.CurrentTurnPlayerId;
+            //var playerInstanceId = this.playersService.GetPlayerById(currentPlayerId).InstanceId;
+            //this.InvokeMyTurn(playerInstanceId);
+            this.DealCards(gameId);
         }
 
         private GameInstance CreateNewGameInstance(string gameId)
@@ -620,7 +696,7 @@ namespace LanternCardGame.Services
                     var playerCards = this.GetPlayerCards(gameId, currentPlayer.Id).ToList();
                     var random = new Random(Environment.TickCount);
                     var card = playerCards[random.Next(playerCards.Count)];
-                    this.PlayerPutCardInEmptyDeck(gameId, currentPlayer.Id, card.Id);
+                    this.PlayerPutCardInDiscardDeck(gameId, currentPlayer.Id, card.Id);
                     this.notifyService.InvokeByPlayer(currentPlayer.InstanceId, "GetPlayerCards");
                     this.notificationService.AddPlayerNotification(currentPlayer.InstanceId,
                         "Time's up! Random card from your deck was thrown.",
@@ -633,7 +709,7 @@ namespace LanternCardGame.Services
 
             gameInstance.AddArragingTimerElapsedEvent((source, e) =>
             {
-                this.notifyService.InvokeByGroup(gameId, "ForceFinishAarraging");
+                this.notifyService.InvokeByGroup(gameId, "ForceFinishArraging");
             });
 
             this.gameInstances.Add(gameInstance);

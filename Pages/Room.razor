@@ -19,10 +19,10 @@
 
     var isOwner = this.room?.OwnerId == this.userService.UserId;
 
-    <h3>Room @this.room?.Name</h3>
-    <p>@this.room?.PlayerCount / @this.room?.MaxPlayers</p>
+    <h3 class="mb-3">Room @this.room?.Name</h3>
+    <p>Time per turn: @(this.room.TimePerTurn.TotalSeconds > 0 ? $"{room.TimePerTurn.ToString(@"m\:ss")} min" : "Unlimited")</p>
 
-    <div class="font-weight-bold">Players:</div>
+    <div class="font-weight-bold">Players @this.room?.PlayerCount / @this.room?.MaxPlayers</div>
     <ul class="list-group list-group-flush mb-3">
         @foreach (var player in room?.Players ?? new PlayerModel[0])
         {
@@ -85,6 +85,7 @@
         }
     </div>
     <br />
+
     <div id="chat">
         <ChatComponent RoomId="@this.RoomId" />
     </div>
@@ -144,7 +145,7 @@
     public void StartGame()
     {
         this.roomsService.StartGame(this.RoomId);
-        this.gameService.StartGame(this.RoomId);
+        this.gameService.EnterGame(this.RoomId);
     }
 
     public void JoinRoom()

@@ -25,6 +25,16 @@ namespace LanternCardGame.Services
             return this.dbContext.Users.Where(x => x.UserName == username).Select(x => x.PlayerStats).FirstOrDefault();
         }
 
+        public void PlayerStartGame(string playerId)
+        {
+            lock (this.balanceLock)
+            {
+                var stats = this.GetPlayerStatsById(playerId);
+                stats.GamesStarted++;
+                this.dbContext.SaveChanges();
+            }
+        }
+
         public void PlayerLeftGame(string playerId)
         {
             lock (this.balanceLock)

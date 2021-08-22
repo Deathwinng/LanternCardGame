@@ -170,7 +170,7 @@
         flex: 1 1 0;
     }
 
-        #middle-section #main-deck-wrapper #main-deck div {
+        #middle-section #main-deck-wrapper #main-deck .cards {
             display: flex;
             position: relative;
         }
@@ -185,16 +185,27 @@
                 color: black;
             }
 
-#deck-cards-left {
-    position: absolute;
-    right: 52px;
-    top: 76px;
-    font-size: 30px;
-    font-weight: bold;
-    text-align: center;
-    width: 35px;
-    user-select: none;
-}
+        #middle-section #main-deck-wrapper #turn-timer-line {
+            width: 100%;
+            height: 3px;
+            background: lightgray;
+        }
+
+            #middle-section #main-deck-wrapper #turn-timer-line div {
+                transition: all 1s linear;
+                height: 100%;
+            }
+
+        #deck-cards-left {
+            position: absolute;
+            right: 52px;
+            top: 76px;
+            font-size: 30px;
+            font-weight: bold;
+            text-align: center;
+            width: 35px;
+            user-select: none;
+        }
 
 #player-deck {
     display: flex;
@@ -219,6 +230,11 @@
 #middle-section #chat-toggle,
 #middle-section #game-info-toggle {
     display: none;
+}
+
+#fullscreen-button {
+    box-shadow: 0 0 5px #0000007a;
+    cursor: pointer;
 }
 
 /*#player-deck ::deep .card:first-child {
@@ -339,7 +355,7 @@
         }
 
         to {
-            box-shadow: 0 0 15px teal;
+            box-shadow: 0 0 20px 5px teal;
         }
     }
 }
