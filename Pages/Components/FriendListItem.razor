@@ -2,11 +2,13 @@
 @inject OnlinePlayersService playerService
 @inject GameRoomsService roomService
 @inject CurrentUserService userService
+@inject NotificationService notificationService
+
 @using LanternCardGame.Shared.Enums
 
 <li class="list-group-item d-flex justify-content-between">
     <span class="align-self-center">
-        @FriendUsername
+        @this.FriendUsername
         @if (this.FriendStatus != null)
         {
             <span class="text-muted">
@@ -22,16 +24,16 @@
     <div>
         @if (this.FriendStatus == PlayerStatus.InRoom)
         {
-            <button class="btn btn-outline-success mr-3"
+            <button class="btn btn-sm btn-outline-success mr-3"
                     @onclick='this.JoinFriendsRoom'>
                 Join
             </button>
         }
-        <button class="btn btn-outline-primary"
-                @onclick='() => this.navigationManager.NavigateTo($"/user/{FriendUsername}")'>
+        <button class="btn btn-sm btn-outline-primary"
+                @onclick='() => this.navigationManager.NavigateTo($"/user/{this.FriendUsername}")'>
             Info
         </button>
-        <button class="btn btn-outline-danger"
+        <button class="btn btn-sm btn-outline-danger"
                 @onclick="this.RemoveFriend">
             Remove
         </button>
@@ -51,10 +53,17 @@
     private void JoinFriendsRoom()
     {
         var player = this.playerService.GetPlayerByUsername(this.FriendUsername);
-        var joined = this.roomService.AddPlayerToRoom(this.userService.UserId, player.RoomId, true);
-        if (joined)
+        try
         {
+            this.roomService.AddPlayerToRoom(this.userService.UserId, player.RoomId, true);
             this.navigationManager.NavigateTo($"/rooms/{player.RoomId}");
+        }
+        catch (Exception ex)
+        {
+            this.notificationService.AddPlayerNotification(
+                this.userService.InstanceId,
+                ex.Message,
+                severity: NotificationType.Danger);
         }
     }
 }

@@ -10,6 +10,7 @@
 @inject CurrentUserService userService
 @inject OnlinePlayersService playerService
 @inject NotifyService notifyService
+@inject NotificationService notificationService
 @inject NavigationManager navManager
 
 <Title Value="Browse rooms"></Title>
@@ -36,7 +37,7 @@
         @if (this.rooms.Count == 0)
         {
             <tr class="d-md-table-row">
-                <td>
+                <td colspan="5">
                     No rooms
                 </td>
             </tr>
@@ -53,7 +54,7 @@
                     <td>
                         <button class="btn btn-primary w-100"
                                 disabled="@(room.PlayerCount >= room.MaxPlayers)"
-                                @onclick="() => JoinRoom(room.Id)">
+                                @onclick="() => this.JoinRoom(room.Id)">
                             Join
                         </button>
                     </td>
@@ -85,22 +86,29 @@
             this.navManager.NavigateTo("/");
         }
 
-        this.subscriptionInfo = notifyService.Subscribe(this.userService.InstanceId, "RefreshRooms", async () => await RefreshRoomsAsync());
+        this.subscriptionInfo = this.notifyService.Subscribe(this.userService.InstanceId, "RefreshRooms", async () => await RefreshRoomsAsync());
         base.OnAfterRender(firstRender);
     }
 
     public async Task RefreshRoomsAsync()
     {
-        this.rooms = roomService.GetAllRoomsNotInGame().ToHashSet();
+        this.rooms = this.roomService.GetAllRoomsNotInGame().ToHashSet();
         await this.InvokeAsync(this.StateHasChanged);
     }
 
     public void JoinRoom(string roomId)
     {
-        var joined = roomService.AddPlayerToRoom(userService.UserId, roomId);
-        if (joined)
+        try
         {
+            this.roomService.AddPlayerToRoom(userService.UserId, roomId);
             this.navManager.NavigateTo($"/rooms/{roomId}");
+        }
+        catch (Exception ex)
+        {
+            this.notificationService.AddPlayerNotification(
+                this.userService.InstanceId,
+                ex.Message,
+                severity: NotificationType.Danger);
         }
     }
 

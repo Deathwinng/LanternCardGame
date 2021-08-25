@@ -51,7 +51,6 @@ namespace LanternCardGame.Services
                 if (!this.IsDuplicatePlayer(player.Id, player.InstanceId))
                 {
                     this.notificationService.AddPlayerNotification(player.InstanceId, "You are now online!", 2);
-                    this.notifyService.InvokeByPlayer(player.InstanceId, "ReceiveNotification");
                     this.notifyService.InvokeAll("UpdateOnlinePlayers");
                 }
                 else

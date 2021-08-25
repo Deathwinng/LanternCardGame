@@ -11,16 +11,6 @@
     font-family: Helvetica;
 }
 
-    .card.empty {
-        box-shadow: none;
-        background: #ececec;
-    }
-
-.card.mini {
-    width: 65px;
-    height: 92px;
-}
-
 .player-card {
     margin: 5px -5px;
 }
@@ -116,6 +106,38 @@
         background: yellow;
     }
 
+
+.card.mini {
+    width: 65px;
+    height: 92px;
+    padding: 7px;
+    margin: 3px;
+    text-align: left;
+    box-shadow: 0 0 4px 0px #00000038;
+}
+
+    .card.mini .card-suit {
+        height: 30px;
+        top: 10px;
+    }
+
+    .card.mini .card-type {
+        font-size: 23px;
+    }
+
+    .card.mini .card-pair {
+        height: 2px;
+    }
+
+.card.empty {
+    box-shadow: none;
+    background: #ececec;
+}
+
+    .card.empty.mini {
+        margin: 0;
+    }
+
 .joker {
     writing-mode: vertical-lr;
     text-orientation: upright;
@@ -138,6 +160,16 @@
         padding-left: 5px;
         letter-spacing: -5px;
     }
+
+    .card.mini {
+        margin: 3px -14px;
+        padding: 7px;
+    }
+
+        .card.mini:not(:last-child) .card-suit {
+            width: 30px;
+            margin-left: -3px;
+        }
 
     @keyframes breathe-gold {
         from {

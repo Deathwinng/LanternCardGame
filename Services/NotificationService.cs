@@ -9,10 +9,12 @@ namespace LanternCardGame.Services
     {
         private IList<NotificationModel> notifications;
         private readonly object balanceLock = new object();
+        private readonly NotifyService notifyService;
 
-        public NotificationService()
+        public NotificationService(NotifyService notifyService)
         {
             this.notifications = new List<NotificationModel>();
+            this.notifyService = notifyService;
         }
 
         public IEnumerable<NotificationModel> GetPlayerNotifications(string playerInstanceId)
@@ -25,7 +27,9 @@ namespace LanternCardGame.Services
             string message,
             double dissmissTimerInSeconds = 0,
             NotificationType severity = NotificationType.Primary,
-            bool isDissmissable = true)
+            string category = "General",
+            bool isDissmissable = true,
+            bool notifyPlayer = true)
         {
             lock (this.balanceLock)
             {
@@ -33,10 +37,15 @@ namespace LanternCardGame.Services
                     playerInstanceId,
                     message,
                     severity,
+                    category,
                     isDissmissable,
                     dissmissTimerInSeconds);
                 this.notifications.Add(notification);
 
+                if (notifyPlayer)
+                {
+                    this.notifyService.InvokeByPlayer(playerInstanceId, "ReceiveNotification");
+                }
                 return notification.Id;
             }
         }
@@ -45,22 +54,28 @@ namespace LanternCardGame.Services
             IEnumerable<string> playerInstanceIds,
             string message,
             double dissmissTimerInSeconds = 0,
+            string category = "General",
             NotificationType severity = NotificationType.Primary,
-            bool isDissmissable = true)
+            bool isDissmissable = true,
+            bool notifyPlayers = true)
         {
             lock (this.balanceLock)
             {
                 var notificationIds = new List<string>(playerInstanceIds.Count());
                 foreach (var playerInstanceId in playerInstanceIds)
                 {
-                    var notification = new NotificationModel(
+                    notificationIds.Add(this.AddPlayerNotification(
                         playerInstanceId,
                         message,
+                        dissmissTimerInSeconds,
                         severity,
-                        isDissmissable,
-                        dissmissTimerInSeconds);
-                    this.notifications.Add(notification);
-                    notificationIds.Add(notification.Id);
+                        category,
+                        isDissmissable));
+
+                    if (notifyPlayers)
+                    {
+                        this.notifyService.InvokeByPlayer(playerInstanceId, "ReceiveNotification");
+                    }
                 }
 
                 return notificationIds;
@@ -73,6 +88,15 @@ namespace LanternCardGame.Services
             {
                 var notification = this.notifications.FirstOrDefault(x => x.Id == notificationId);
                 this.notifications.Remove(notification);
+            }
+        }
+
+        public void RemovePlayerNotificationsByCategory(string playerInstanceId, string category)
+        {
+            var notifications = this.notifications.Where(x => x.PlayerInstanceId == playerInstanceId && x.Category == category).ToList();
+            for (int i = 0; i < notifications.Count; i++)
+            {
+                this.notifications.Remove(notifications[i]);
             }
         }
 

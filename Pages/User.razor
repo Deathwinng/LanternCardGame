@@ -2,7 +2,9 @@
 
 @using Microsoft.AspNetCore.Components.Web.Extensions.Head
 @using LanternCardGame.Pages.Components
+@using LanternCardGame.Data
 
+@attribute [Authorize]
 @inject PlayerStatsService statsService
 @inject CurrentUserService currentUserService
 @inject UserService userService
@@ -61,7 +63,7 @@
             Games placed first: @this.playerStats.GamesWon @(this.playerStats.GamesWon > 0 ? $"({placedFirstPercentage}%)" : null)
         </li>
         <li class="list-group-item">
-            Games placed last: @this.playerStats.GamesPlacedLast @(this.playerStats.GamesPlacedLast > 0 ? "({placedLastPercentage}%)" : null)
+            Games placed last: @this.playerStats.GamesPlacedLast @(this.playerStats.GamesPlacedLast > 0 ? $"({placedLastPercentage}%)" : null)
         </li>
     </ul>
 
@@ -80,7 +82,7 @@ else
     public string Username { get; set; }
 
     private bool playerExists = true;
-    private Data.PlayerStats playerStats;
+    private PlayerStats playerStats;
     private bool areFriends = false;
     private bool requestSent = false;
 
@@ -116,7 +118,7 @@ else
         if (this.playersService.IsPlayerOnline(reciever.Id))
         {
             var instanceId = this.playersService.GetPlayerById(reciever.Id).InstanceId;
-            this.notificationService.AddPlayerNotification(instanceId, $"New friend request received from {this.currentUserService.Username}!");
+            this.notificationService.AddPlayerNotification(instanceId, $"New friend request received from {this.currentUserService.Username}!", category:  "FriendRequest");
             this.notifyService.InvokeByPlayer(instanceId, "ReceiveNotification");
             this.notifyService.InvokeByPlayer(instanceId, "FriendRequest");
         }

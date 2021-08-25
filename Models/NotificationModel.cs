@@ -9,6 +9,7 @@ namespace LanternCardGame.Models
             string playerInstanceId,
             string message,
             NotificationType type,
+            string category,
             bool isDissmissable,
             double dissmissTimerInSeconds)
         {
@@ -16,6 +17,7 @@ namespace LanternCardGame.Models
             this.PlayerInstanceId = playerInstanceId;
             this.Message = message;
             this.Type = type;
+            this.Category = category;
             this.IsDissmissable = isDissmissable;
             this.DissmissTimerInSeconds = dissmissTimerInSeconds;
             this.TimerStarted = false;
@@ -28,6 +30,8 @@ namespace LanternCardGame.Models
         public string Message { get; set; }
 
         public NotificationType Type { get; set; }
+
+        public string Category { get; set; }
 
         public bool IsDissmissable { get; set; }
 

@@ -12,6 +12,8 @@
 @inject GameService gameService
 @inject FriendsService friendsService
 @inject NotifyService notifyService
+@inject NotificationService notificationService
+
 
 @if (this.room != null && this.roomsService.IsPlayerInTheRoom(this.userService.InstanceId, this.RoomId))
 {
@@ -32,6 +34,13 @@
                 {
                     <img src="/img/crown.png" width="20" height="20" class="ml-2" title="Host" />
                 }
+                else if (isOwner)
+                {
+                    <button class="btn btn-sm btn-danger ml-3"
+                            @onclick="() => this.KickPlayer(player.Id, player.InstanceId)">
+                        Kick
+                    </button>
+                }
             </li>
         }
     </ul>
@@ -43,12 +52,12 @@
     <div class="mb-3">
         @if (isOwner)
         {
-            <button class="btn btn-outline-success mr-2"
+            <button class="btn btn-outline-success"
                     disabled="@(this.room?.PlayerCount < this.room?.MaxPlayers)"
                     @onclick="this.StartGame">
                 Start Game
             </button>
-            <button class="btn btn-outline-primary mr-2"
+            <button class="btn btn-outline-primary"
                     disabled="@(!(this.room?.PlayerCount < this.room?.MaxPlayers))"
                     @onclick="this.ToggleInviteFriends">
                 Invite Friends
@@ -144,8 +153,18 @@
 
     public void StartGame()
     {
-        this.roomsService.StartGame(this.RoomId);
-        this.gameService.EnterGame(this.RoomId);
+        try
+        {
+            this.roomsService.StartGame(this.RoomId);
+            this.gameService.EnterGame(this.RoomId);
+        }
+        catch (Exception ex)
+        {
+            this.notificationService.AddPlayerNotification(
+                this.userService.InstanceId,
+                ex.Message,
+                severity: Shared.Enums.NotificationType.Danger);
+        }
     }
 
     public void JoinRoom()
@@ -166,11 +185,31 @@
 
     public void LeaveRoom(bool navigate = true)
     {
-        this.roomsService.RemovePlayerFromRoom(userService.UserId, this.RoomId);
-        if (navigate)
+        try
         {
-            this.navManager.NavigateTo("/rooms");
+            this.roomsService.RemovePlayerFromRoom(this.userService.UserId, this.RoomId);
+            if (navigate)
+            {
+                this.navManager.NavigateTo("/rooms");
+            }
         }
+        catch (Exception ex)
+        {
+            this.notificationService.AddPlayerNotification(
+                this.userService.InstanceId,
+                ex.Message,
+                severity: Shared.Enums.NotificationType.Danger);
+        }
+    }
+
+    private void KickPlayer(string playerId, string playerInstanceId)
+    {
+        this.notifyService.InvokeByPlayer(playerInstanceId, "RoomDeleted");
+        this.notificationService.AddPlayerNotification(
+            playerInstanceId,
+            "You have been kicked from the room!",
+            10,
+            Shared.Enums.NotificationType.Warning);
     }
 
     public async Task RefreshRoomAsync()

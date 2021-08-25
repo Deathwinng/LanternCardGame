@@ -1,10 +1,15 @@
 ﻿@page "/user/invites"
+
 @attribute [Authorize]
+
 @inject GameRoomsService roomsService
 @inject CurrentUserService userService
 @inject OnlinePlayersService playerService
 @inject NotifyService notifyService
+@inject NotificationService notificationService
 @inject NavigationManager navManager
+
+@using LanternCardGame.Shared.Enums
 
 <h3>Invites</h3>
 
@@ -46,7 +51,6 @@
                             Accept
                         </button>
                         <button class="btn btn-outline-danger"
-                                disabled="@(room.PlayerCount >= room.MaxPlayers)"
                                 @onclick="() => Reject(room.Id)">
                             Reject
                         </button>
@@ -63,6 +67,8 @@
     protected override void OnInitialized()
     {
         this.RefreshRooms();
+        this.notificationService.RemovePlayerNotificationsByCategory(this.userService.InstanceId, "GameInvite");
+        this.notifyService.InvokeByPlayer(this.userService.InstanceId, "ReceiveNotification");
         base.OnInitialized();
     }
 
@@ -78,9 +84,9 @@
 
     private void Accept(string roomId)
     {
-        var joined = this.roomsService.AddPlayerToRoom(userService.UserId, roomId, true);
-        if (joined)
+        try
         {
+            this.roomsService.AddPlayerToRoom(this.userService.UserId, roomId, true);
             var player = this.playerService.GetPlayerById(this.userService.UserId);
             foreach (var kvp in player.RoomInviteIds)
             {
@@ -89,12 +95,20 @@
 
             this.navManager.NavigateTo($"/rooms/{roomId}");
         }
+        catch (Exception ex)
+        {
+            this.notificationService.AddPlayerNotification(
+                this.userService.InstanceId,
+                ex.Message,
+                severity: NotificationType.Danger);
+        }
+
     }
 
     private void Reject(string roomId)
     {
         this.roomsService.RemoveInvite(this.userService.InstanceId, roomId);
-        this.notifyService.InvokeByPlayer(this.userService.InstanceId, "RoomIvite");
+        this.notifyService.InvokeByPlayer(this.userService.InstanceId, "RoomInvite");
         this.RefreshRooms();
         this.StateHasChanged();
     }

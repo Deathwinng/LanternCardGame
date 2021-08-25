@@ -19,7 +19,7 @@
                  OnlinePlayers="this.onlinePlayers"
                  Player="this.player"
                  FriendRequests="this.friendRequests"
-                 InvitesCount="this.player.RoomInviteIds.Count" />
+                 InvitesCount="this.player?.RoomInviteIds.Count ?? 0" />
     </div>
 
     <div class="main">
@@ -111,7 +111,7 @@
                 this.NavigationManager.NavigateTo("/", true);
             });
 
-            this.notifyService.Subscribe(this.player.InstanceId, "RoomIvite", async () =>
+            this.notifyService.Subscribe(this.player.InstanceId, "RoomInvite", async () =>
             {
                 await this.InvokeAsync(this.StateHasChanged);
             });
@@ -158,7 +158,7 @@
     private void DuplicateUser()
     {
         this.duplicatePlayer = true;
-        this.duplicatePlayerNotificationId = this.notificationService.AddPlayerNotification(this.player.InstanceId, "User account already connected to the server!", 0, NotificationType.Danger, false);
+        this.duplicatePlayerNotificationId = this.notificationService.AddPlayerNotification(this.player.InstanceId, "User account already connected to the server!", 0, NotificationType.Danger, isDissmissable: false);
         this.notifications = this.notificationService.GetPlayerNotifications(this.player.InstanceId).ToList();
         this.NavigationManager.NavigateTo("/");
     }

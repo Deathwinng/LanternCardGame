@@ -1,6 +1,7 @@
 ﻿@inject FriendsService friendsService
 @inject OnlinePlayersService playersService
 @inject GameRoomsService roomsService
+@inject NotificationService notificationService
 
 @using LanternCardGame.Shared.Enums
 
@@ -60,7 +61,17 @@
 
     private void Invite(string playerInstanceId)
     {
-        this.roomsService.InvitePlayerToRoom(this.Username, playerInstanceId, this.RoomId);
-        this.RefreshFriends();
+        try
+        {
+            this.roomsService.InvitePlayerToRoom(this.Username, playerInstanceId, this.RoomId);
+            this.RefreshFriends();
+        }
+        catch (Exception exception)
+        {
+            this.notificationService.AddPlayerNotification(
+                this.playersService.GetPlayerById(this.UserId).InstanceId,
+                exception.Message,
+                severity: NotificationType.Danger);
+        }
     }
 }
