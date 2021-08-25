@@ -97,18 +97,18 @@ namespace LanternCardGame
                 var context = serviceScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 context.Database.Migrate();
 
-                var roleStore = new RoleStore<IdentityRole>(context);
-                var roles = new string[] { "Administrator", "User" };
+                //var roleStore = new RoleStore<IdentityRole>(context);
+                //var roles = new string[] { "Administrator", "User" };
 
-                foreach (var role in roles)
-                {
-                    if (!context.Roles.Any(r => r.Name == role))
-                    {
-                        roleStore.CreateAsync(new IdentityRole(role));
-                    }
-                }
+                //foreach (var role in roles)
+                //{
+                //    if (!context.Roles.Any(r => r.Name == role))
+                //    {
+                //        roleStore.CreateAsync(new IdentityRole(role));
+                //    }
+                //}
 
-                context.SaveChangesAsync();
+                //context.SaveChangesAsync();
             }
 
             app.UseResponseCompression();
